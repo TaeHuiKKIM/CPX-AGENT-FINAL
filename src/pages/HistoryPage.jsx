@@ -62,10 +62,12 @@ function DetailedReport({ hist, scenarios }) {
     const scores = { 병력청취: 0, 의사소통: 0, 설명교육: 0 };
     const maxScores = { 병력청취: 0, 의사소통: 0, 설명교육: 0 };
 
+    const checkedRubrics = hist.checkedRubrics || [];
+
     scen.rubrics.forEach((rub) => {
       if (scores[rub.category] === undefined) return;
       maxScores[rub.category] += rub.weight;
-      if (hist.checkedRubrics.includes(rub.id)) scores[rub.category] += rub.weight;
+      if (checkedRubrics.includes(rub.id)) scores[rub.category] += rub.weight;
     });
 
     const categories = Object.keys(scores);
@@ -98,15 +100,16 @@ function DetailedReport({ hist, scenarios }) {
 
   if (!scen) return null;
 
+  const checkedRubrics = hist.checkedRubrics || [];
   const strengths = hist.strengths?.length > 0 ? hist.strengths : [];
   if (strengths.length === 0) {
-    if (hist.checkedRubrics.includes('r1')) strengths.push('주소증 발현 기간과 지속 시간을 꼼꼼히 여쭈어 감별 진단 단서를 수집했습니다.');
-    if (hist.checkedRubrics.includes('r2')) strengths.push('환자가 호소하는 통증의 양상을 자연스럽게 문진했습니다.');
-    if (hist.checkedRubrics.includes('r4')) strengths.push('환자의 불안에 대해 공감하며 차분하게 대화를 진행했습니다.');
+    if (checkedRubrics.includes('r1')) strengths.push('주소증 발현 기간과 지속 시간을 꼼꼼히 여쭈어 감별 진단 단서를 수집했습니다.');
+    if (checkedRubrics.includes('r2')) strengths.push('환자가 호소하는 통증의 양상을 자연스럽게 문진했습니다.');
+    if (checkedRubrics.includes('r4')) strengths.push('환자의 불안에 대해 공감하며 차분하게 대화를 진행했습니다.');
     if (strengths.length === 0) strengths.push('환자가 문진에 대답하도록 적절한 흐름을 유지하였습니다.');
   }
 
-  const missed = scen.rubrics.filter((r) => !hist.checkedRubrics.includes(r.id));
+  const missed = scen.rubrics.filter((r) => !checkedRubrics.includes(r.id));
   const weaknesses = hist.weaknesses?.length > 0 ? hist.weaknesses : missed.map(m => `[${m.category}] ${m.item} 항목 문진을 누락하였습니다.`);
 
   const showScoresTab = () => setReportTab('scores');

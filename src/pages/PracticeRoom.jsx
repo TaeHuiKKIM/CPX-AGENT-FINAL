@@ -143,7 +143,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
       alert("테스트 세션이 종료되었습니다. AI 교수님의 채점을 시작합니다. (약 10~15초 소요)");
       
       try {
-        const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
         const res = await fetch(`${apiUrl}/v1/feedback/evaluate_anonymous`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -166,10 +166,10 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           satisfaction: evalResult.score_communication || 80,
           ppi: (evalResult.total_score || 0) >= 90 ? '매우 우수(S)' : (evalResult.total_score || 0) >= 80 ? '우수(A)' : '보통(B)',
           score: evalResult.total_score || 85,
-          checkedRubrics: [],
           transcript: messagesRef.current.length > 0 ? messagesRef.current : [{ speaker: 'patient', text: '대화 기록이 없습니다.' }],
           // HistoryPage에서 강점, 약점, 피드백을 보여주기 위해 결과 병합
-          ...evalResult
+          ...evalResult,
+          checkedRubrics: evalResult.checkedRubrics || []
         };
         
         resetRoom();
