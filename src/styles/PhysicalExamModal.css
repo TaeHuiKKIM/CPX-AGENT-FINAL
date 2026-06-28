@@ -47,8 +47,8 @@
 
 .pe-patient-tag {
   padding: 4px 12px;
-  background-color: rgba(11, 191, 175, 0.1);
-  color: #0bbfaf;
+  background-color: rgba(18, 102, 255, 0.1);
+  color: #1266ff;
   font-size: 14px;
   font-weight: 600;
   border-radius: 8px;
@@ -107,7 +107,7 @@
 }
 
 .pe-posture-display {
-  background-color: #0bbfaf;
+  background-color: #1266ff;
   color: white;
   padding: 12px;
   border-radius: 8px;
@@ -169,16 +169,16 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.pe-btn-outline:hover { border-color: rgba(11, 191, 175, 0.5); }
+.pe-btn-outline:hover { border-color: rgba(18, 102, 255, 0.5); }
 .pe-btn-outline:disabled,
 .pe-item-btn:disabled {
   opacity: 0.55;
   cursor: wait;
 }
 .pe-btn-outline.active {
-  background-color: rgba(11, 191, 175, 0.1);
-  border-color: #0bbfaf;
-  color: #0bbfaf;
+  background-color: rgba(18, 102, 255, 0.1);
+  border-color: #1266ff;
+  color: #1266ff;
 }
 
 .pe-btn-hygiene {
@@ -194,11 +194,11 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.pe-btn-hygiene:hover { border-color: rgba(11, 191, 175, 0.5); }
+.pe-btn-hygiene:hover { border-color: rgba(18, 102, 255, 0.5); }
 .pe-btn-hygiene.done {
   background-color: #f0fdfa;
   border-color: #14b8a6;
-  color: #0f766e;
+  color: #0757f2;
 }
 .pe-hyg-indicator {
   display: flex;
@@ -215,7 +215,7 @@
 }
 .pe-btn-hygiene.done .pe-hyg-dot { background-color: #14b8a6; }
 .pe-hyg-meta { font-size: 12px; font-family: monospace; color: #94a3b8; }
-.pe-btn-hygiene.done .pe-hyg-meta { color: #0f766e; }
+.pe-btn-hygiene.done .pe-hyg-meta { color: #0757f2; }
 
 .pe-note-text {
   font-size: 12px;
@@ -267,10 +267,10 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.pe-btn-intro:hover { border-color: rgba(11, 191, 175, 0.5); }
+.pe-btn-intro:hover { border-color: rgba(18, 102, 255, 0.5); }
 .pe-btn-intro.done {
-  border-color: #0bbfaf;
-  background-color: rgba(11, 191, 175, 0.05);
+  border-color: #1266ff;
+  background-color: rgba(18, 102, 255, 0.05);
 }
 .pe-intro-icon {
   width: 32px;
@@ -285,7 +285,7 @@
   color: #64748b;
 }
 .pe-btn-intro.done .pe-intro-icon {
-  background-color: #0bbfaf;
+  background-color: #1266ff;
   color: white;
 }
 .pe-intro-title {
@@ -336,7 +336,7 @@
 }
 .pe-quad-val {
   font-family: monospace;
-  color: #0bbfaf;
+  color: #1266ff;
   font-size: 12px;
   margin-left: 8px;
 }
@@ -383,12 +383,12 @@
   transition: all 0.2s;
 }
 .pe-item-btn:hover {
-  border-color: rgba(11, 191, 175, 0.6);
+  border-color: rgba(18, 102, 255, 0.6);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 .pe-item-btn.done {
-  background-color: rgba(11, 191, 175, 0.05);
-  border-color: rgba(11, 191, 175, 0.4);
+  background-color: rgba(18, 102, 255, 0.05);
+  border-color: rgba(18, 102, 255, 0.4);
 }
 .pe-item-icon {
   width: 40px;
@@ -408,7 +408,7 @@
   color: #1e293b;
   margin-bottom: 4px;
 }
-.pe-item-btn.done .pe-item-name { color: #0bbfaf; }
+.pe-item-btn.done .pe-item-name { color: #1266ff; }
 .pe-over-tag {
   font-size: 10px;
   color: #ef4444;
@@ -423,7 +423,7 @@
   display: flex;
   gap: 12px;
 }
-.pe-item-check { color: #0bbfaf; }
+.pe-item-check { color: #1266ff; }
 
 /* RIGHT PANEL: LOGS */
 .pe-panel-right {
@@ -501,8 +501,8 @@
 .pe-tl-find {
   margin-top: 8px;
   font-size: 12px;
-  background-color: rgba(11, 191, 175, 0.1);
-  border-left: 2px solid #0bbfaf;
+  background-color: rgba(18, 102, 255, 0.1);
+  border-left: 2px solid #1266ff;
   padding: 8px;
   border-radius: 0 6px 6px 0;
   color: #5eead4;

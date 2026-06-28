@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Stethoscope } from 'lucide-react';
 
 export default function LoginPage({ onLogin, onRegister, loading }) {
   const [mode, setMode] = useState('login');
@@ -33,9 +32,9 @@ export default function LoginPage({ onLogin, onRegister, loading }) {
     <div className="auth-page">
       <form className="auth-card" onSubmit={submit}>
         <div className="auth-logo">
-          <span><Stethoscope size={24} /></span>
+          <span><img src="/brand/medirole-symbol.png" alt="" /></span>
           <div>
-            <strong>medirole</strong>
+            <img className="auth-wordmark" src="/brand/medirole-wordmark.png" alt="medirole" />
             <p>AI 표준환자 CPX 연습 플랫폼</p>
           </div>
         </div>

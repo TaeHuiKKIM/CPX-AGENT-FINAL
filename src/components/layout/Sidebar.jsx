@@ -5,8 +5,9 @@ export default function Sidebar({ activeTab, onNavigate, onLogout }) {
   return (
     <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column' }}>
       <div className="brand-block">
-        <strong>Medi-CPX</strong>
-        <span>AI 표준환자 연습</span>
+        <img className="brand-symbol" src="/brand/medirole-symbol.png" alt="" />
+        <img className="brand-wordmark" src="/brand/medirole-wordmark.png" alt="medirole" />
+        <span>AI 표준환자 CPX</span>
       </div>
       <nav style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {NAV_ITEMS.map(([tabId, label]) => (

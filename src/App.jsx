@@ -16,6 +16,47 @@ import LoginPage from './pages/LoginPage';
 import { supabase } from './api/supabase';
 import { CheckCircle2 } from 'lucide-react';
 
+const formatDateKey = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const createInitialSchedules = () => {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  return [
+    {
+      id: 'sched-review-1',
+      type: 'general',
+      title: '김정수 환자 가슴 통증 대화 분석 복습',
+      date: formatDateKey(today),
+      time: '10:00',
+      completed: true
+    },
+    {
+      id: 'sched-scenario-1',
+      type: 'scenario',
+      scenarioId: 'scen-fever-5',
+      title: '정수아 환자 급성 신우신염 연습',
+      date: formatDateKey(today),
+      time: '14:30',
+      completed: false
+    },
+    {
+      id: 'sched-general-2',
+      type: 'general',
+      title: '[과제] AI 표준환자 대화형 평가 준비',
+      date: formatDateKey(tomorrow),
+      time: '18:00',
+      completed: false
+    }
+  ];
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
@@ -24,7 +65,15 @@ export default function App() {
   const [scenarios, setScenarios] = useState(() => cloneData(initialScenarios));
   const [notifications, setNotifications] = useState(() => cloneData(initialNotifications));
   const [history, setHistory] = useState(() => cloneData(initialHistory));
-  const [activeScenarioId, setActiveScenarioId] = useState('scen-angina');
+  const [scheduleItems, setScheduleItems] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem('medi-cpx-schedule-items');
+      return saved ? JSON.parse(saved) : createInitialSchedules();
+    } catch {
+      return createInitialSchedules();
+    }
+  });
+  const [activeScenarioId, setActiveScenarioId] = useState('scen-fever-1');
   const [selectedModalScenarioId, setSelectedModalScenarioId] = useState(null);
   const [selectedHistoryId, setSelectedHistoryId] = useState(null);
   const [rubricLogs, setRubricLogs] = useState(() => cloneData(initialRubricHistoryLogs));
@@ -80,11 +129,60 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  useEffect(() => {
+    window.localStorage.setItem('medi-cpx-schedule-items', JSON.stringify(scheduleItems));
+  }, [scheduleItems]);
+
   const startScenario = (scenarioId, mode = 'EXAM') => {
     setSelectedModalScenarioId(null);
     setActiveScenarioId(scenarioId);
     setPracticeMode(mode);
     navigateTo('practice');
+  };
+
+  const addScheduleItem = (item) => {
+    setScheduleItems((prev) => [
+      ...prev,
+      {
+        ...item,
+        id: `sched-${Date.now()}`,
+        completed: false
+      }
+    ]);
+  };
+
+  const toggleScheduleItem = (scheduleId) => {
+    setScheduleItems((prev) =>
+      prev.map((item) =>
+        item.id === scheduleId
+          ? { ...item, completed: !item.completed, completedAt: !item.completed ? new Date().toISOString() : null }
+          : item
+      )
+    );
+  };
+
+  const completeScenarioSchedule = (scenarioId) => {
+    const todayKey = formatDateKey(new Date());
+    setScheduleItems((prev) => {
+      const candidates = prev
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => item.type === 'scenario' && item.scenarioId === scenarioId && !item.completed);
+
+      if (candidates.length === 0) return prev;
+
+      const sameDay = candidates.find(({ item }) => item.date === todayKey);
+      const past = candidates
+        .filter(({ item }) => item.date < todayKey)
+        .sort((a, b) => `${b.item.date} ${b.item.time}`.localeCompare(`${a.item.date} ${a.item.time}`))[0];
+      const future = candidates.sort((a, b) => `${a.item.date} ${a.item.time}`.localeCompare(`${b.item.date} ${b.item.time}`))[0];
+      const target = sameDay ?? past ?? future;
+
+      return prev.map((item, index) =>
+        index === target.index
+          ? { ...item, completed: true, completedAt: new Date().toISOString(), completedByPractice: true }
+          : item
+      );
+    });
   };
 
   const [resultPopup, setResultPopup] = useState(null);
@@ -106,6 +204,7 @@ export default function App() {
         };
       })
     );
+    completeScenarioSchedule(record.scenarioId);
     setSelectedHistoryId(record.id);
     navigateTo('history');
     setResultPopup({ record, score });
@@ -127,7 +226,14 @@ export default function App() {
         <Topbar notifications={notifications} setNotifications={setNotifications} />
 
         <section className={`content-view ${activeTab === 'dashboard' ? 'active' : ''}`}>
-          <Dashboard scenarios={scenarios} onOpenScenario={setSelectedModalScenarioId} />
+          <Dashboard
+            scenarios={scenarios}
+            scheduleItems={scheduleItems}
+            onAddSchedule={addScheduleItem}
+            onToggleSchedule={toggleScheduleItem}
+            onOpenScenario={setSelectedModalScenarioId}
+            onStartScenario={(scenarioId) => startScenario(scenarioId, 'PRACTICE')}
+          />
         </section>
 
         <section className={`content-view ${activeTab === 'library' ? 'active' : ''}`}>
@@ -135,7 +241,12 @@ export default function App() {
         </section>
 
         <section className={`content-view ${activeTab === 'practice' ? 'active' : ''}`}>
-          <PracticeRoom scenario={activeScenario} practiceMode={practiceMode} onFinish={finishPractice} />
+          <PracticeRoom
+            scenario={activeScenario}
+            practiceMode={practiceMode}
+            onFinish={finishPractice}
+            onScenarioCompleted={completeScenarioSchedule}
+          />
         </section>
 
         <section className={`content-view ${activeTab === 'history' ? 'active' : ''}`}>
@@ -191,19 +302,19 @@ export default function App() {
             animation: 'resultPopIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275)'
           }}>
             <div style={{
-              width: '80px', height: '80px', background: 'linear-gradient(135deg, #0bbfaf, #0891b2)',
+              width: '80px', height: '80px', background: 'linear-gradient(135deg, #1266ff, #5b72ff)',
               borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 20px', color: '#fff'
             }}><CheckCircle2 size={40} /></div>
             <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>채점 완료!</h2>
             <p style={{ color: '#64748b', marginBottom: '28px', fontSize: '15px' }}>AI 교수님의 종합 평가가 완료되었습니다</p>
             <div style={{
-              background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)',
-              border: '2px solid #0bbfaf', borderRadius: '8px',
+              background: 'linear-gradient(135deg, #f4f7ff, #e8f0ff)',
+              border: '2px solid #1266ff', borderRadius: '8px',
               padding: '24px', marginBottom: '28px'
             }}>
               <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 600 }}>총 점수</div>
-              <div style={{ fontSize: '56px', fontWeight: 900, color: '#0bbfaf', lineHeight: 1 }}>
+              <div style={{ fontSize: '56px', fontWeight: 900, color: '#1266ff', lineHeight: 1 }}>
                 {resultPopup.score}
                 <span style={{ fontSize: '20px', color: '#94a3b8', fontWeight: 500 }}>점</span>
               </div>
@@ -211,7 +322,7 @@ export default function App() {
             <button
               onClick={() => setResultPopup(null)}
               style={{
-                width: '100%', padding: '16px', background: 'linear-gradient(135deg, #0bbfaf, #0891b2)',
+                width: '100%', padding: '16px', background: 'linear-gradient(135deg, #1266ff, #5b72ff)',
                 color: '#fff', border: 'none', borderRadius: '8px',
                 fontSize: '16px', fontWeight: 700, cursor: 'pointer',
                 transition: 'transform 0.15s ease'
