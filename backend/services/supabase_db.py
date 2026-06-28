@@ -10,6 +10,9 @@ async def log_transcript(session_id: str, speaker: str, content: str, audio_url:
     Asynchronously logs a conversation transcript to Supabase.
     speaker: 'USER' or 'AI'
     """
+    if session_id.startswith("test-session"):
+        return None  # 로그인 없이 진행하는 로컬 테스트이므로 DB 생략
+
     supabase = get_supabase_client()
     data = {
         "session_id": session_id,
@@ -17,9 +20,13 @@ async def log_transcript(session_id: str, speaker: str, content: str, audio_url:
         "content": content,
         "audio_url": audio_url
     }
-    # Fire and forget (or handle async properly in production)
-    response = supabase.table("transcripts").insert(data).execute()
-    return response
+    
+    try:
+        response = supabase.table("transcripts").insert(data).execute()
+        return response
+    except Exception as e:
+        print(f"Error logging transcript: {e}")
+        return None
 
 async def get_scenario_prompt(scenario_id: str) -> dict:
     """Fetches the scenario details from Supabase to build the LLM prompt."""

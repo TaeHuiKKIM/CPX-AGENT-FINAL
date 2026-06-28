@@ -6,9 +6,10 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "https://your-project-url.supabase.co")
     SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "your-supabase-anon-key")
     
-    # OpenAI config
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "your-openai-api-key")
+    # Gemini config
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
 
 settings = Settings()
