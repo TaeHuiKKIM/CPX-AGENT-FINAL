@@ -135,23 +135,46 @@ export default function PracticeRoom({ scenario, onFinish }) {
     }
 
     if (session.session_id.startsWith('test-session')) {
-      // 로컬 가짜 세션은 DB 저장 없이 프론트엔드에서 모의 채점 결과를 생성
-      const mockRecord = {
-        id: `mock-history-${Date.now()}`,
-        scenarioId: scenario.id,
-        date: new Date().toLocaleString('ko-KR'),
-        duration: formatTime(600 - timer),
-        ratio: '50:50',
-        satisfaction: 90,
-        ppi: '우수(A)',
-        score: 85,
-        checkedRubrics: ['r1', 'r2', 'r3'],
-        transcript: messagesRef.current.length > 0 ? messagesRef.current : [{ speaker: 'patient', text: '대화 기록이 없습니다.' }]
-      };
+      alert("테스트 세션이 종료되었습니다. AI 교수님의 채점을 시작합니다. (약 10~15초 소요)");
       
-      alert("로그인 없이 진행한 테스트 세션이 종료되었습니다. (DB 저장 없이 모의 채점 결과를 제공합니다)");
-      resetRoom();
-      onFinish(mockRecord, 85);
+      try {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+        const res = await fetch(`${apiUrl}/v1/feedback/evaluate_anonymous`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scenario_id: scenario.id,
+            transcripts: messagesRef.current,
+            rubric_data: { rubrics: scenario.rubrics }
+          })
+        });
+        
+        if (!res.ok) throw new Error("Evaluation API Error");
+        const evalResult = await res.json();
+        
+        const aiRecord = {
+          id: `mock-history-${Date.now()}`,
+          scenarioId: scenario.id,
+          date: new Date().toLocaleString('ko-KR'),
+          duration: formatTime(600 - timer),
+          ratio: '50:50',
+          satisfaction: evalResult.score_communication || 80,
+          ppi: (evalResult.total_score || 0) >= 90 ? '매우 우수(S)' : (evalResult.total_score || 0) >= 80 ? '우수(A)' : '보통(B)',
+          score: evalResult.total_score || 85,
+          checkedRubrics: [],
+          transcript: messagesRef.current.length > 0 ? messagesRef.current : [{ speaker: 'patient', text: '대화 기록이 없습니다.' }],
+          // HistoryPage에서 강점, 약점, 피드백을 보여주기 위해 결과 병합
+          ...evalResult
+        };
+        
+        resetRoom();
+        onFinish(aiRecord, aiRecord.score);
+      } catch (err) {
+        console.error("AI Evaluation failed:", err);
+        alert("채점 중 오류가 발생했습니다.");
+        resetRoom();
+        onFinish({ id: 'error-history', scenarioId: scenario.id, score: 0 }, 0);
+      }
       return;
     }
 
