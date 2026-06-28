@@ -2,7 +2,7 @@ import logging
 import json
 from core.exceptions import CPXException
 from services.supabase_db import get_supabase_client
-from services.llm_service import client
+from services.llm_service import client, _call_with_retry
 from core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -98,16 +98,18 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
     }
     
     try:
-        response = await client.aio.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=[{"role": "user", "parts": [{"text": prompt}]}],
-            config={
-                "system_instruction": system_instruction,
-                "response_mime_type": "application/json",
-                "response_schema": response_schema,
-                "temperature": 0.2,
-            }
-        )
+        async def _call():
+            return await client.aio.models.generate_content(
+                model=settings.GEMINI_MODEL,
+                contents=[{"role": "user", "parts": [{"text": prompt}]}],
+                config={
+                    "system_instruction": system_instruction,
+                    "response_mime_type": "application/json",
+                    "response_schema": response_schema,
+                    "temperature": 0.2,
+                }
+            )
+        response = await _call_with_retry(_call)
         
         result_json = json.loads(response.text)
         

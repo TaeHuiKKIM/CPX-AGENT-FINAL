@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from google import genai
 from core.config import settings
 
@@ -8,6 +9,21 @@ logger = logging.getLogger(__name__)
 # The SDK automatically looks for GEMINI_API_KEY in the environment if not passed explicitly,
 # but passing it directly is safer.
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+async def _call_with_retry(fn, max_retries=3):
+    """429/503 에러 시 지수 백오프로 최대 max_retries회 재시도"""
+    for attempt in range(max_retries):
+        try:
+            return await fn()
+        except Exception as e:
+            err_str = str(e)
+            if ("429" in err_str or "503" in err_str or "RESOURCE_EXHAUSTED" in err_str or "UNAVAILABLE" in err_str) and attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # 1초, 2초, 4초
+                logger.warning(f"Rate limit/unavailable (attempt {attempt+1}/{max_retries}). Retrying in {wait_time}s...")
+                await asyncio.sleep(wait_time)
+            else:
+                raise e
+    raise Exception("Max retries exceeded")
 
 async def generate_ai_reply(scenario_info: dict, conversation_history: list, mode: str) -> dict:
     """
@@ -65,16 +81,18 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
     }
     
     try:
-        response = await client.aio.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=contents,
-            config={
-                "system_instruction": system_instruction,
-                "response_mime_type": "application/json",
-                "response_schema": response_schema,
-                "temperature": 0.7,
-            }
-        )
+        async def _call():
+            return await client.aio.models.generate_content(
+                model=settings.GEMINI_MODEL,
+                contents=contents,
+                config={
+                    "system_instruction": system_instruction,
+                    "response_mime_type": "application/json",
+                    "response_schema": response_schema,
+                    "temperature": 0.7,
+                }
+            )
+        response = await _call_with_retry(_call)
         
         # Parse response text (which is JSON)
         import json
