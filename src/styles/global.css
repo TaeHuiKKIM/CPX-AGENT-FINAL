@@ -155,11 +155,15 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .history-page, .rubric-admin-page { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 16px; }
 .history-list-item { width: 100%; text-align: left; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 10px; }
 .history-list-item.active { border-color: var(--primary); background: var(--primary-soft); }
+.history-list-item.failed { border-color: #fecaca; background: #fff7f7; }
 .report-placeholder { min-height: 360px; display: grid; place-items: center; color: var(--muted); }
 .report-details-view { line-height: 1.65; }
 .report-header-block { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; }
 .report-header-block h2 { margin: 4px 0 0; font-size: 16px; line-height: 1.4; }
 .report-header-block strong { font-size: 32px; color: var(--primary); white-space: nowrap; }
+.report-alert-box { display: flex; flex-direction: column; gap: 8px; border: 1px solid #fecaca; background: #fff7f7; color: #991b1b; border-radius: 8px; padding: 14px 16px; margin-bottom: 18px; line-height: 1.55; }
+.report-alert-box span { color: #7f1d1d; }
+.report-alert-box code { display: block; overflow-wrap: anywhere; color: #7f1d1d; background: #fee2e2; border-radius: 6px; padding: 8px 10px; font-size: 12px; }
 .report-metric-card { background: #f8fafc; border: 1px solid #edf1f6; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 .report-chart-box, .profile-chart-box { height: 280px; margin: 24px 0; }
 .report-tab-row { display: flex; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 22px; }

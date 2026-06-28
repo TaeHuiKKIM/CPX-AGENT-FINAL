@@ -19,6 +19,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
   const [inputValue, setInputValue] = useState('');
   const [isPEOpen, setIsPEOpen] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evaluationError, setEvaluationError] = useState('');
   const [peLog, setPeLog] = useState({ performed: [], hygEvents: [], usedTime: 0, contactCount: 0, findings: [] });
   const [timer, setTimer] = useState(SESSION_DURATION_SECONDS);
   const [emotion, setEmotion] = useState({ anxiety: 70, cooperation: 40, satisfaction: 50 });
@@ -65,6 +66,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     setEmotionDesc('연습을 시작하면 환자의 정서 상태가 반영됩니다.');
     setIsListening(false);
     setIsEvaluating(false);
+    setEvaluationError('');
     stopInProgressRef.current = false;
   }, []);
 
@@ -197,7 +199,34 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     return res.json();
   }, [scenario.goals, scenario.id, scenario.rubrics]);
 
-  const buildHistoryRecord = useCallback((evalResult) => ({
+  const buildFallbackEvaluation = useCallback((error) => ({
+    score_total: 0,
+    yes_count: 0,
+    total_items: 40,
+    scoring_mode: 'evaluation_failed_recovery',
+    total_score: 0,
+    score_history_taking: 0,
+    score_communication: 0,
+    score_education: 0,
+    score_physical_exam: 0,
+    physical_exam_logs: peLogRef.current,
+    strengths: ['채점 서버 오류로 자동 채점이 완료되지 않았습니다.'],
+    weaknesses: [
+      '대화 기록과 신체진찰 기록은 보존되었습니다. 서버 상태를 확인한 뒤 같은 세션 흐름을 다시 테스트하세요.',
+      error?.message || '알 수 없는 채점 오류'
+    ],
+    clinical_reasoning_flow: [],
+    explainable_feedback: [
+      {
+        topic: '채점 실패',
+        reason: error?.message || '채점 API 호출 중 오류가 발생했습니다.'
+      }
+    ],
+    items: [],
+    missed_items: []
+  }), []);
+
+  const buildHistoryRecord = useCallback((evalResult, options = {}) => ({
     id: `history-${Date.now()}`,
     scenarioId: scenario.id,
     date: new Date().toLocaleString('ko-KR'),
@@ -208,6 +237,8 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     score: evalResult.total_score ?? 0,
     transcript: messagesRef.current.length > 0 ? messagesRef.current : [{ speaker: 'patient', text: '대화 기록이 없습니다.' }],
     ...evalResult,
+    evaluationStatus: options.status || 'completed',
+    evaluationError: options.error || '',
     checkedRubrics: evalResult.checkedRubrics || [],
     checklistItems: evalResult.items || [],
     missedItems: evalResult.missed_items || []
@@ -240,11 +271,16 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
       resetRoom();
     } catch (err) {
       console.error("AI Evaluation failed:", err);
-      stopInProgressRef.current = false;
-      setIsEvaluating(false);
-      alert("AI 채점 서버에 일시적인 오류가 발생했습니다.\n잠시 후 다시 종료 버튼을 눌러 재시도해 주세요.\n(서버 과부하 시 30초 후 자동 해소됩니다)");
+      const message = err?.message || '알 수 없는 채점 오류';
+      const fallbackRecord = buildHistoryRecord(buildFallbackEvaluation(err), {
+        status: 'failed',
+        error: message
+      });
+      setEvaluationError(message);
+      onFinish(fallbackRecord, fallbackRecord.score);
+      resetRoom();
     }
-  }, [buildHistoryRecord, onFinish, onScenarioCompleted, requestEvaluation, resetRoom, session]);
+  }, [buildFallbackEvaluation, buildHistoryRecord, onFinish, onScenarioCompleted, requestEvaluation, resetRoom, session]);
 
   useEffect(() => {
     if (!session) return undefined;
@@ -471,6 +507,11 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
             AI 교수님이 꼼꼼하게 채점 중입니다...
           </h2>
           <p style={{ color: '#64748b', fontSize: '16px' }}>대화 내용과 신체진찰 기록을 종합하여 분석하고 있습니다. (약 10~15초 소요)</p>
+          {evaluationError && (
+            <p style={{ color: '#dc2626', fontSize: '14px', marginTop: '12px', maxWidth: '520px', textAlign: 'center' }}>
+              {evaluationError}
+            </p>
+          )}
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}

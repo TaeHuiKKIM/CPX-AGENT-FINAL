@@ -21,12 +21,12 @@ export default function HistoryPage({ scenarios, history, selectedHistoryId, set
                 key={hist.id}
                 type="button"
                 data-hist-id={hist.id}
-                className={`history-list-item ${selectedHistoryId === hist.id ? 'active' : ''}`}
+                className={`history-list-item ${selectedHistoryId === hist.id ? 'active' : ''} ${hist.evaluationStatus === 'failed' ? 'failed' : ''}`}
                 onClick={() => setSelectedHistoryId(hist.id)}
               >
                 <div className="hist-top">
                   <span>{hist.date || '날짜 없음'}</span>
-                  <span>PPI: {hist.ppi || '-'}</span>
+                  <span>{hist.evaluationStatus === 'failed' ? '채점 실패' : `PPI: ${hist.ppi || '-'}`}</span>
                 </div>
                 <h4 className="hist-title">
                   {scen ? `${scen.patientName} (${scen.tag})` : hist.scenarioId}
@@ -129,6 +129,14 @@ function DetailedReport({ hist, scenarios }) {
         </h2>
         <strong id="rep-total-score">{hist.score}점</strong>
       </div>
+
+      {hist.evaluationStatus === 'failed' && (
+        <div className="report-alert-box" role="alert">
+          <strong>채점 서버 오류로 자동 채점이 완료되지 않았습니다.</strong>
+          <span>대화 기록과 신체진찰 기록은 보존되었습니다. 아래 오류를 확인한 뒤 서버 상태 또는 환경변수를 점검하세요.</span>
+          {hist.evaluationError && <code>{hist.evaluationError}</code>}
+        </div>
+      )}
 
       <div className="report-metrics-grid">
         <Metric label="진행 시간" value={hist.duration} id="rep-duration" />
