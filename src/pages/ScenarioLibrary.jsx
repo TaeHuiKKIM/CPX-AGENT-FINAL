@@ -25,9 +25,6 @@ export default function ScenarioLibrary({ scenarios, onOpenScenario }) {
 
   return (
     <div className="library-page">
-      <div className="page-header-row">
-        <h2>시나리오 라이브러리</h2>
-      </div>
       <div className="library-filter-row">
         <input id="library-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="환자명, 증상, 키워드 검색" />
         <select id="filter-subject" value={subject} onChange={(e) => setSubject(e.target.value)}>
