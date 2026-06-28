@@ -1,6 +1,8 @@
 import { X } from 'lucide-react';
+import { useState } from 'react';
 
 export default function ScenarioDetailModal({ scenario, onClose, onStart }) {
+  const [mode, setMode] = useState('EXAM');
   const maxVal = Math.max(...scenario.distribution);
 
   return (
@@ -58,13 +60,28 @@ export default function ScenarioDetailModal({ scenario, onClose, onStart }) {
           ))}
         </div>
 
-        <div className="modal-action-row">
-          <button type="button" id="btn-modal-cancel" onClick={onClose}>
-            취소
-          </button>
-          <button type="button" className="btn-primary" id="btn-modal-start-practice" onClick={onStart}>
-            연습 시작
-          </button>
+        <div className="modal-action-row" style={{ flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <label htmlFor="practice-mode-select" style={{ fontSize: '14px', fontWeight: 'bold' }}>실습 모드 선택</label>
+            <select 
+              id="practice-mode-select" 
+              value={mode} 
+              onChange={(e) => setMode(e.target.value)}
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+            >
+              <option value="LEARNING">학습 모드 (AI 튜터 개입)</option>
+              <option value="ACTIVE">능동 모드 (환자 먼저 발화)</option>
+              <option value="EXAM">모의고사 모드 (실전과 동일)</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+            <button type="button" id="btn-modal-cancel" onClick={onClose} style={{ flex: 1 }}>
+              취소
+            </button>
+            <button type="button" className="btn-primary" id="btn-modal-start-practice" onClick={() => onStart(mode)} style={{ flex: 1 }}>
+              연습 시작
+            </button>
+          </div>
         </div>
       </div>
     </div>
