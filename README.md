@@ -1,49 +1,92 @@
-# Medi-CPX React Structured
+# SPAI-CPX-AGENT (Medi-CPX AI 플랫폼)
 
-기존 단일 `App.jsx` 중심 React 코드를 컴포넌트 단위로 분리한 버전입니다.
+의과대학 실기시험(CPX) 대비를 위한 **AI 표준환자 대화형 실습 플랫폼**입니다.
+React(Vite) 기반의 프론트엔드와 FastAPI 기반의 백엔드(Gemini 2.5 Flash 연동)가 실시간 웹소켓(WebSocket)으로 통신하며, 즉각적인 음성/텍스트 응답을 제공합니다.
 
-## 실행 방법
+---
+
+## 🛠 기술 스택
+- **Frontend**: React 18, Vite, Supabase-js, Lucide-react
+- **Backend**: Python 3.10+, FastAPI, Uvicorn, Google GenAI (Gemini 2.5 Flash), WebSocket
+- **Database**: Supabase (PostgreSQL)
+
+---
+
+## ⚙️ 설치 및 설정 방법
+
+이 프로젝트는 **프론트엔드(Node.js)**와 **백엔드(Python)** 두 가지 환경을 모두 설정해야 합니다.
+
+### 1. 환경 변수 (.env) 설정
+프로젝트 최상단(루트 디렉터리)에 `.env` 파일을 생성하고 아래 내용을 입력합니다.
+(기존 `.env`가 있다면 `GEMINI_API_KEY`가 정확한지 확인하세요.)
+
+```env
+# AI API
+GEMINI_API_KEY="여러분의_GEMINI_API_KEY"
+GEMINI_MODEL="gemini-2.5-flash"
+
+# Supabase
+VITE_SUPABASE_URL="https://iwqqiyntomqsuhblgacr.supabase.co"
+VITE_SUPABASE_ANON_KEY="여러분의_SUPABASE_ANON_KEY"
+
+# Backend & WebSocket
+VITE_FASTAPI_WS_URL=ws://localhost:8000/api/v1
+VITE_FASTAPI_BASE_URL=http://localhost:8000/api/v1
+PORT=4000
+CLIENT_ORIGIN=http://localhost:5173
+```
+
+### 2. 백엔드 (FastAPI) 설치
+루트 디렉터리에서 `backend` 폴더로 이동하여 가상 환경을 생성하고 패키지를 설치합니다.
+
+```bash
+cd backend
+python -m venv venv
+
+# Windows의 경우 가상 환경 활성화:
+venv\Scripts\activate
+# Mac/Linux의 경우:
+# source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+### 3. 프론트엔드 (React/Vite) 설치
+새 터미널을 열고 프로젝트 최상단(루트)에서 의존성 패키지를 설치합니다.
 
 ```bash
 npm install
+```
+
+---
+
+## 🚀 실행 방법
+
+로컬에서 테스트하려면 **2개의 터미널**을 열어 프론트엔드와 백엔드를 각각 실행해야 합니다.
+
+### 터미널 1: 백엔드 서버 실행
+```bash
+cd backend
+venv\Scripts\activate
+uvicorn main:app --port 8000 --reload
+```
+- 성공 시 `ws://localhost:8000/api/v1` 에서 웹소켓 대기 중
+
+### 터미널 2: 프론트엔드 서버 실행
+```bash
 npm run dev
 ```
+- 성공 시 `http://localhost:5173` 으로 접속 가능
 
-## 파일 구조
+---
 
-```txt
-src/
-├─ App.jsx                         # 전체 state, 탭 라우팅, 페이지 연결
-├─ main.jsx                        # React 앱 진입점
-├─ constants/
-│  └─ navigation.js                 # 탭/사이드바 메뉴 상수
-├─ data/
-│  └─ initialData.js                # 시나리오, 알림, 히스토리, 루브릭 초기 데이터
-├─ utils/
-│  ├─ cloneData.js                  # 초기 데이터 deep copy 유틸
-│  ├─ speech.js                     # TTS 출력 유틸
-│  └─ time.js                       # 타이머 포맷 유틸
-├─ components/
-│  ├─ layout/
-│  │  ├─ Sidebar.jsx                # 왼쪽 네비게이션
-│  │  └─ Topbar.jsx                 # 상단바, 알림 드롭다운
-│  └─ scenario/
-│     └─ ScenarioDetailModal.jsx    # 시나리오 상세 모달
-├─ pages/
-│  ├─ Dashboard.jsx                 # 대시보드 카드, 공지, 캘린더
-│  ├─ ScenarioLibrary.jsx           # 시나리오 검색/필터/정렬
-│  ├─ PracticeRoom.jsx              # AI 표준환자 대화, STT/TTS, 타이머, 정서 게이지
-│  ├─ HistoryPage.jsx               # 연습 이력, 상세 리포트, Chart.js 레이더 차트
-│  ├─ RubricAdmin.jsx               # 루브릭 CRUD, 버전 로그, 검수 코멘트
-│  └─ SettingsPage.jsx              # 프로필, 마이크 테스트, 데이터 삭제
-└─ styles/
-   └─ global.css                    # 전체 스타일
-```
+## 💡 테스트 가이드 (로그인 우회 모드)
+개발 및 데모 테스트의 편의성을 위해 **로그인 없이도 즉시 실습을 시작할 수 있는 로컬 테스트 모드**가 적용되어 있습니다.
 
-## 설계 기준
+1. 브라우저에서 `http://localhost:5173` 접속
+2. 좌측 메뉴에서 **실습실(Practice Room)** 또는 대시보드의 시나리오 클릭
+3. 화면 중앙의 **[연습 시작]** 버튼 클릭
+4. (자동으로 임시 세션 발급 완료) 마이크로 환자에게 첫 인사를 건네거나 텍스트 입력!
+   - 예: "안녕하세요, 어디가 불편해서 오셨나요?"
 
-- `App.jsx`: 전역 상태와 페이지 라우팅만 담당합니다.
-- `pages/`: 화면 하나를 구성하는 큰 단위 컴포넌트입니다.
-- `components/`: 여러 페이지에서 재사용하거나 역할이 명확한 UI 컴포넌트입니다.
-- `utils/`: 화면과 무관한 순수 함수 또는 브라우저 기능 래퍼입니다.
-- `data/`: 목업 데이터를 별도 파일로 분리했습니다.
+> **참고:** 로그인 없이 진행된 로컬 테스트 세션(`test-session-...`)은 종료 후 Supabase DB에 기록을 저장하거나 평가(Evaluation)를 수행하지 않고 즉시 초기화됩니다. 
