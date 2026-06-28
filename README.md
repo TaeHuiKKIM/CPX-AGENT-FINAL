@@ -1,92 +1,84 @@
-# SPAI-CPX-AGENT (Medi-CPX AI 플랫폼)
+# Medi-CPX (SPAI-CPX-AGENT) 🩺
 
-의과대학 실기시험(CPX) 대비를 위한 **AI 표준환자 대화형 실습 플랫폼**입니다.
-React(Vite) 기반의 프론트엔드와 FastAPI 기반의 백엔드(Gemini 2.5 Flash 연동)가 실시간 웹소켓(WebSocket)으로 통신하며, 즉각적인 음성/텍스트 응답을 제공합니다.
+AI 기반 표준환자 진료(CPX) 연습 및 자동 채점 플랫폼입니다. 의과대학생 및 의료진이 언제 어디서든 AI 환자와 음성으로 진료 상황을 연습하고, 상세한 피드백과 채점 결과를 받아볼 수 있습니다.
 
----
+## ✨ 주요 기능
 
-## 🛠 기술 스택
-- **Frontend**: React 18, Vite, Supabase-js, Lucide-react
-- **Backend**: Python 3.10+, FastAPI, Uvicorn, Google GenAI (Gemini 2.5 Flash), WebSocket
-- **Database**: Supabase (PostgreSQL)
+*   **🔐 사용자 인증**: Supabase를 활용한 회원가입, 로그인 및 세션 관리
+*   **🗣️ 실전 같은 진료 연습 (Practice Room)**: 
+    *   사용자의 마이크 음성을 인식하여 텍스트로 변환 (STT)
+    *   AI 표준환자(LLM)가 실시간으로 대답하고 반응
+    *   10분 타이머 제공으로 실전 CPX 시험과 동일한 환경 구성
+*   **📊 AI 평가 및 피드백**:
+    *   진료 종료 시 백엔드(FastAPI)에서 대화 기록(Transcript)을 바탕으로 채점
+    *   루브릭(Rubric)에 따른 병력청취, 의사소통(PPI), 설명 및 교육 점수 산출
+    *   강점, 약점, 진단 추론 흐름 등 상세한 피드백 제공
+*   **📈 대시보드 및 통계**:
+    *   최근 10회 평균 역량을 레이더 차트로 시각화
+    *   진료 케이스별 달성도 및 연습 이력 관리
 
----
+## 🛠️ 기술 스택
 
-## ⚙️ 설치 및 설정 방법
+### Frontend
+*   **Framework**: React (Vite)
+*   **Styling**: Custom CSS (Vanilla, 모던 글래스모피즘 & UI/UX 적용)
+*   **State & Routing**: React Hooks
+*   **Charts & Icons**: Chart.js, Lucide-React
 
-이 프로젝트는 **프론트엔드(Node.js)**와 **백엔드(Python)** 두 가지 환경을 모두 설정해야 합니다.
+### Backend & AI
+*   **Framework**: FastAPI (Python)
+*   **LLM Integration**: OpenAI GPT / Google Gemini (프롬프트 엔지니어링 및 환자 페르소나 적용)
+*   **Realtime**: WebSockets (실시간 음성/텍스트 스트리밍 대응)
 
-### 1. 환경 변수 (.env) 설정
-프로젝트 최상단(루트 디렉터리)에 `.env` 파일을 생성하고 아래 내용을 입력합니다.
-(기존 `.env`가 있다면 `GEMINI_API_KEY`가 정확한지 확인하세요.)
+### Database & Auth
+*   **BaaS**: Supabase (PostgreSQL)
+*   **Auth**: Supabase Auth (Email/Password)
+*   **Security**: Row Level Security (RLS) 적용
 
+## 🚀 로컬 실행 방법 (Getting Started)
+
+### 1. 환경 변수 설정
+프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 아래 값을 채워주세요.
 ```env
-# AI API
-GEMINI_API_KEY="여러분의_GEMINI_API_KEY"
-GEMINI_MODEL="gemini-2.5-flash"
+# Supabase 설정
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
 
-# Supabase
-VITE_SUPABASE_URL="https://iwqqiyntomqsuhblgacr.supabase.co"
-VITE_SUPABASE_ANON_KEY="여러분의_SUPABASE_ANON_KEY"
-
-# Backend & WebSocket
-VITE_FASTAPI_WS_URL=ws://localhost:8000/api/v1
-VITE_FASTAPI_BASE_URL=http://localhost:8000/api/v1
-PORT=4000
-CLIENT_ORIGIN=http://localhost:5173
+# AI 설정
+OPENAI_API_KEY=your_openai_api_key
 ```
 
-### 2. 백엔드 (FastAPI) 설치
-루트 디렉터리에서 `backend` 폴더로 이동하여 가상 환경을 생성하고 패키지를 설치합니다.
+### 2. 데이터베이스 설정 (Supabase)
+Supabase 대시보드의 **SQL Editor**에서 `supabase/schema.sql` 파일의 내용을 복사하여 실행합니다. 
+*(이 스크립트는 기존 테이블과 충돌하지 않도록 `IF NOT EXISTS`가 적용되어 있습니다.)*
 
+### 3. 패키지 설치 및 서버 실행
+
+#### Frontend (React)
 ```bash
-cd backend
-python -m venv venv
-
-# Windows의 경우 가상 환경 활성화:
-venv\Scripts\activate
-# Mac/Linux의 경우:
-# source venv/bin/activate
-
-pip install -r requirements.txt
-```
-
-### 3. 프론트엔드 (React/Vite) 설치
-새 터미널을 열고 프로젝트 최상단(루트)에서 의존성 패키지를 설치합니다.
-
-```bash
+# 패키지 설치
 npm install
-```
 
----
-
-## 🚀 실행 방법
-
-로컬에서 테스트하려면 **2개의 터미널**을 열어 프론트엔드와 백엔드를 각각 실행해야 합니다.
-
-### 터미널 1: 백엔드 서버 실행
-```bash
-cd backend
-venv\Scripts\activate
-uvicorn main:app --port 8000 --reload
-```
-- 성공 시 `ws://localhost:8000/api/v1` 에서 웹소켓 대기 중
-
-### 터미널 2: 프론트엔드 서버 실행
-```bash
+# 프론트엔드 개발 서버 실행 (기본 포트: 5173)
 npm run dev
 ```
-- 성공 시 `http://localhost:5173` 으로 접속 가능
 
----
+#### Backend (FastAPI)
+```bash
+# 파이썬 가상환경 생성 및 활성화
+cd backend
+python -m venv venv
+# Windows: venv\Scripts\activate
+# Mac/Linux: source venv/bin/activate
 
-## 💡 테스트 가이드 (로그인 우회 모드)
-개발 및 데모 테스트의 편의성을 위해 **로그인 없이도 즉시 실습을 시작할 수 있는 로컬 테스트 모드**가 적용되어 있습니다.
+# 의존성 패키지 설치
+pip install -r requirements.txt
 
-1. 브라우저에서 `http://localhost:5173` 접속
-2. 좌측 메뉴에서 **실습실(Practice Room)** 또는 대시보드의 시나리오 클릭
-3. 화면 중앙의 **[연습 시작]** 버튼 클릭
-4. (자동으로 임시 세션 발급 완료) 마이크로 환자에게 첫 인사를 건네거나 텍스트 입력!
-   - 예: "안녕하세요, 어디가 불편해서 오셨나요?"
+# 백엔드 서버 실행 (기본 포트: 8000)
+python -m uvicorn main:app --port 8000 --reload
+```
 
-> **참고:** 로그인 없이 진행된 로컬 테스트 세션(`test-session-...`)은 종료 후 Supabase DB에 기록을 저장하거나 평가(Evaluation)를 수행하지 않고 즉시 초기화됩니다. 
+## 📝 라이선스
+This project is licensed under the MIT License.
