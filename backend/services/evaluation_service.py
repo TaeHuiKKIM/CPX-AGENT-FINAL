@@ -150,19 +150,39 @@ def calculate_pe_score(pe_log: dict):
     
     if not pe_log.get("introDone"):
         score -= 10
-        feedbacks.append("[신체진찰] 진입 선언(개방형 환자 확인)이 누락되었습니다.")
+        feedbacks.append("[신체진찰 - 개방형 확인] 진입 선언(개방형 환자 확인)이 누락되었습니다.")
         
     hyg = pe_log.get("hygEvents", [])
     if len(hyg) == 0:
-        score -= 20
-        feedbacks.append("[신체진찰] 손소독을 한 번도 수행하지 않았습니다.")
+        score -= 15
+        feedbacks.append("[신체진찰 - 손소독] 손소독을 한 번도 수행하지 않았습니다.")
     elif len(hyg) < 2:
-        score -= 10
-        feedbacks.append("[신체진찰] 손소독 횟수가 부족합니다. (권장: 접촉 전/후)")
+        score -= 5
+        feedbacks.append("[신체진찰 - 손소독] 손소독 횟수가 부족합니다. (권장: 접촉 전/후)")
         
     if pe_log.get("usedTime", 0) > 40: # 과도한 시간 차감
         score -= 10
-        feedbacks.append("[신체진찰] 진찰에 불필요한 과도한 시간을 소모했습니다.")
+        feedbacks.append("[신체진찰 - 시간 관리] 진찰에 불필요한 과도한 시간을 소모했습니다.")
+        
+    timeline = pe_log.get("timeline", [])
+    for ev in timeline:
+        gates = ev.get("gates", [])
+        if gates:
+            for g in gates:
+                if "손소독 누락" in g:
+                    continue # 위에서 종합 평가
+                score -= 5
+                feedbacks.append(f"[신체진찰 - 절차 위반] {ev.get('label', '항목')} 수행 시: {g}")
+                
+        # 순서 위반 (청진 선행 위반 등)
+        if ev.get("orderOk") is False:
+            score -= 10
+            feedbacks.append(f"[신체진찰 - 시행 순서] {ev.get('label', '항목')}: 복부 진찰 순서(시-청-타-촉)를 위반했습니다.")
+            
+    performed = pe_log.get("performed", {})
+    if not performed:
+        score -= 20
+        feedbacks.append("[신체진찰 - 항목 적절성] 신체진찰 항목을 하나도 수행하지 않았습니다.")
         
     return max(0, score), feedbacks
 

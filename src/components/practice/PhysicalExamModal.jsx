@@ -204,11 +204,12 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
     // Generate scoring log to pass to parent
     const log = {
       introDone,
-      performed: Object.keys(performed),
+      performed, // 전체 객체 (orderOk, quad 포함)
       hygEvents,
       contactCount,
       usedTime,
-      findings
+      findings,
+      timeline
     };
     onComplete(log, findings);
   };
