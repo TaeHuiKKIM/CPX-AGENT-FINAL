@@ -424,6 +424,13 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
         <h3>환자 상태 및 AI 튜터</h3>
         <p id="emotion-status-desc">{emotionDesc}</p>
       </aside>
+
+      <PhysicalExamModal 
+        isOpen={isPEOpen} 
+        onClose={() => setIsPEOpen(false)} 
+        scenario={scenario} 
+        onComplete={handlePEComplete}
+      />
     </div>
   );
 }
