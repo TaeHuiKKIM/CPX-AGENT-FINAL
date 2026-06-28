@@ -4,6 +4,7 @@ import { formatTime } from '../utils/time';
 import { speakWithTTS } from '../utils/speech';
 import { api } from '../api/client';
 import { supabase } from '../api/supabase';
+import PhysicalExamModal from './PhysicalExamModal';
 
 const FASTAPI_WS_URL = import.meta.env.VITE_FASTAPI_WS_URL || 'ws://localhost:8000/api/v1';
 
@@ -11,6 +12,8 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
+  const [isPEOpen, setIsPEOpen] = useState(false);
+  const [peLog, setPeLog] = useState(null);
   const [timer, setTimer] = useState(600);
   const [emotion, setEmotion] = useState({ anxiety: 70, cooperation: 40, satisfaction: 50 });
   const [emotionDesc, setEmotionDesc] = useState('연습을 시작하면 환자의 정서 상태가 반영됩니다.');
@@ -53,10 +56,24 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     return () => resetRoom();
   }, [resetRoom, scenario.id]);
 
-  const appendMessage = useCallback((speaker, text) => {
+  const appendMessage = useCallback((speaker, text, isSystem = false) => {
     const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    setMessages((prev) => [...prev, { speaker, text, time }]);
+    setMessages((prev) => [...prev, { speaker, text, time, isSystem }]);
   }, []);
+
+  const handlePEComplete = (log, findings) => {
+    setIsPEOpen(false);
+    setPeLog(log);
+    
+    if (findings.length > 0) {
+      const text = "신체진찰 수행 소견:\n" + findings.map(f => `- ${f.nm}: ${f.find}`).join('\n');
+      appendMessage('system', text, true);
+      
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'pe_results', log, findings }));
+      }
+    }
+  };
 
   const startSession = async () => {
     // 1. Create a DB Session Record in Supabase (or fallback to Local Test Session)
@@ -150,7 +167,8 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           body: JSON.stringify({
             scenario_id: scenario.id,
             transcripts: messagesRef.current,
-            rubric_data: { rubrics: scenario.rubrics }
+            rubric_data: { rubrics: scenario.rubrics },
+            pe_log: peLog // PE 채점 로그 백엔드 전송
           })
         });
         
@@ -188,7 +206,17 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
 
     // Trigger Evaluation in FastAPI
     try {
-      await api.triggerEvaluation(session.session_id);
+      await fetch(`http://127.0.0.1:8000/api/v1/feedback/evaluate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: JSON.stringify({
+          session_id: session.session_id,
+          pe_log: peLog
+        })
+      });
       alert("실습이 종료되었습니다. AI 채점이 진행 중입니다. (대시보드에서 결과를 확인하세요)");
     } catch (err) {
       console.error(err);
@@ -297,6 +325,9 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           <button type="button" id="btn-session-start" disabled={Boolean(session)} onClick={startSession}>
             연습 시작
           </button>
+          <button type="button" disabled={!session} onClick={() => setIsPEOpen(true)} className="flex items-center gap-1 text-[#0bbfaf] bg-[#0bbfaf]/10 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-[#0bbfaf]/20 transition-colors ml-auto mr-2 border border-[#0bbfaf]/20">
+            🩺 신체진찰
+          </button>
           <button type="button" id="btn-session-stop" disabled={!session} onClick={stopSession}>
             <Square size={14} /> 종료
           </button>
@@ -325,12 +356,20 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
             </div>
           ) : (
             messages.map((message, index) => (
-              <div key={`${message.speaker}-${index}`} className={`chat-bubble ${message.speaker === 'doctor' ? 'doctor' : 'patient'}`}>
-                <span className="bubble-meta">
-                  {message.speaker === 'doctor' ? '의사 (나)' : '표준환자'} - {message.time}
-                </span>
-                <div className="bubble-content">{message.text}</div>
-              </div>
+              message.isSystem ? (
+                <div key={`sys-${index}`} className="flex justify-center my-3">
+                  <div className="bg-slate-100 border border-slate-200 text-slate-600 text-[13px] px-4 py-2 rounded-xl text-center shadow-sm">
+                    {message.text.split('\n').map((line, i) => <div key={i} className={i===0?'font-bold text-primary mb-1':''}>{line}</div>)}
+                  </div>
+                </div>
+              ) : (
+                <div key={`${message.speaker}-${index}`} className={`chat-bubble ${message.speaker === 'doctor' ? 'doctor' : 'patient'}`}>
+                  <span className="bubble-meta">
+                    {message.speaker === 'doctor' ? '의사 (나)' : '표준환자'} - {message.time}
+                  </span>
+                  <div className="bubble-content">{message.text}</div>
+                </div>
+              )
             ))
           )}
         </div>

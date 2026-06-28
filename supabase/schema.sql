@@ -75,6 +75,8 @@ CREATE TABLE IF NOT EXISTS public.feedback_results (
   score_history_taking numeric,
   score_communication numeric,
   score_education numeric,
+  score_physical_exam numeric,
+  physical_exam_logs jsonb,
   total_score numeric,
   strengths jsonb,
   weaknesses jsonb,

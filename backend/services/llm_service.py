@@ -18,6 +18,8 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
     
     # 1. Construct System Prompt
     patient_info = scenario_info.get("patient_info", {})
+    pe_findings = scenario_info.get("pe_findings", [])
+    
     system_instruction = f"""
     당신은 의과대학 실기시험(CPX)의 표준환자(Standardized Patient)입니다.
     현재 상황:
@@ -25,7 +27,13 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
     - 나이/성별: {patient_info.get('age', 45)}세 / {patient_info.get('gender', 'M')}
     - 주증상: {patient_info.get('initial_complaint', '어디가 불편해서 오셨나요?')}
     - 질환 스크립트: {patient_info.get('script', '')}
+    """
     
+    if pe_findings:
+        findings_str = ", ".join([f"{f['nm']}({f['find']})" for f in pe_findings])
+        system_instruction += f"\n[중요 상태 업데이트]\n의사가 방금 신체진찰을 완료했습니다. 의사가 발견한 진찰 소견은 다음과 같습니다: {findings_str}. \n환자는 이 진찰 과정에서 느낀 불편함이나, 의사가 소견에 대해 질문할 때 이에 맞춰 자연스럽게 반응하세요.\n"
+
+    system_instruction += """
     규칙:
     1. 환자로서 자연스럽게 대답하세요.
     2. 전문적인 의학 용어는 피하고, 일반 환자가 쓰는 언어로 짧고 명확하게 1~2문장으로 답하세요.

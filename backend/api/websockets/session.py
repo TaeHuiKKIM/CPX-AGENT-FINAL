@@ -41,7 +41,15 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, mode: str = 
         while True:
             data = await websocket.receive_text()
             payload = json.loads(data)
+            
+            if payload.get("type") == "pe_results":
+                scenario_info["pe_findings"] = payload.get("findings", [])
+                logger.info(f"PE Findings injected: {scenario_info['pe_findings']}")
+                continue
+                
             user_text = payload.get("text", "")
+            if not user_text:
+                continue
             
             # 1. Log User's Transcript
             conversation_history.append({"role": "user", "content": user_text})

@@ -7,7 +7,7 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: dict) -> dict:
+async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: dict, pe_log: dict = None) -> dict:
     """
     Core function to evaluate a transcript against a rubric using Gemini 2.5 Flash.
     Returns the structured evaluation JSON.
@@ -108,7 +108,28 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
                 "temperature": 0.2,
             }
         )
-        return json.loads(response.text)
+        
+        result_json = json.loads(response.text)
+        
+        # PE 점수 병합
+        if pe_log:
+            pe_score, pe_feedback = calculate_pe_score(pe_log)
+            result_json["score_physical_exam"] = pe_score
+            result_json["physical_exam_logs"] = pe_log
+            
+            # 8개 루브릭 기반으로 총점에 20% 정도 반영하거나 별도 표시 (여기서는 점수 필드에만 추가)
+            # 기존 총점을 AI 채점 3개와 PE 채점 1개로 재계산
+            old_total = result_json.get("total_score", 0)
+            result_json["total_score"] = round((result_json.get("score_history_taking", 0) + result_json.get("score_communication", 0) + result_json.get("score_education", 0) + pe_score) / 4, 1)
+            
+            # 피드백 추가
+            if pe_feedback:
+                if "weaknesses" in result_json:
+                    result_json["weaknesses"].extend(pe_feedback)
+                else:
+                    result_json["weaknesses"] = pe_feedback
+                    
+        return result_json
     except Exception as e:
         logger.error(f"Gemini Evaluation Error: {e}")
         return {
@@ -122,7 +143,30 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
             "explainable_feedback": []
         }
 
-async def evaluate_session(session_id: str):
+def calculate_pe_score(pe_log: dict):
+    # 8개 신체진찰 채점 축
+    score = 100
+    feedbacks = []
+    
+    if not pe_log.get("introDone"):
+        score -= 10
+        feedbacks.append("[신체진찰] 진입 선언(개방형 환자 확인)이 누락되었습니다.")
+        
+    hyg = pe_log.get("hygEvents", [])
+    if len(hyg) == 0:
+        score -= 20
+        feedbacks.append("[신체진찰] 손소독을 한 번도 수행하지 않았습니다.")
+    elif len(hyg) < 2:
+        score -= 10
+        feedbacks.append("[신체진찰] 손소독 횟수가 부족합니다. (권장: 접촉 전/후)")
+        
+    if pe_log.get("usedTime", 0) > 40: # 과도한 시간 차감
+        score -= 10
+        feedbacks.append("[신체진찰] 진찰에 불필요한 과도한 시간을 소모했습니다.")
+        
+    return max(0, score), feedbacks
+
+async def evaluate_session(session_id: str, pe_log: dict = None):
     """
     Evaluates a DB-saved CPX session based on its transcripts and rubric.
     Generates explainable feedback and updates the feedback_results table.
@@ -152,13 +196,22 @@ async def evaluate_session(session_id: str):
     rubric_data = rubric_resp.data[0] if rubric_resp.data else None
     
     # 4. Call LLM for Evaluation
-    eval_result = await evaluate_transcript(transcripts_resp.data, scenario_id, rubric_data)
+    eval_result = await evaluate_transcript(transcripts_resp.data, scenario_id, rubric_data, pe_log)
     
     # 5. Insert / Update Feedback Results in Supabase
     feedback_data = {
         "session_id": session_id,
         "rubric_id": rubric_data["rubric_id"] if rubric_data else None,
-        **eval_result
+        "score_history_taking": eval_result.get("score_history_taking"),
+        "score_communication": eval_result.get("score_communication"),
+        "score_education": eval_result.get("score_education"),
+        "score_physical_exam": eval_result.get("score_physical_exam"),
+        "physical_exam_logs": eval_result.get("physical_exam_logs"),
+        "total_score": eval_result.get("total_score"),
+        "strengths": eval_result.get("strengths"),
+        "weaknesses": eval_result.get("weaknesses"),
+        "clinical_reasoning_flow": eval_result.get("clinical_reasoning_flow"),
+        "explainable_feedback": eval_result.get("explainable_feedback"),
     }
     
     existing = supabase.table("feedback_results").select("result_id").eq("session_id", session_id).execute()
