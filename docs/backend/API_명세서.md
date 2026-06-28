@@ -60,7 +60,7 @@
 #### Request
 ```json
 {
-  "scenario_id": "uuid",
+  "scenario_id": "scen-fever-5",
   "mode": "LEARNING"
 }
 ```
@@ -69,7 +69,7 @@
 ```json
 {
   "session_id": "uuid",
-  "scenario_id": "uuid",
+  "scenario_id": "scen-fever-5",
   "rubric_id": "uuid",
   "mode": "LEARNING",
   "status": "IN_PROGRESS",
@@ -132,33 +132,66 @@
 
 ## 5. Feedback API — 세션 종료 및 평가 트리거
 
-### 5.1 `POST /feedback/{session_id}/evaluate`
-세션 종료 후 자동 채점을 시작한다.
+### 5.1 `POST /feedback/evaluate_anonymous`
+현행 프론트엔드가 세션 종료 시 사용하는 동기 채점 API다.
 
 #### Description
-FastAPI가 해당 세션의 `Transcripts`와 신체진찰 로그를 읽어 40개 항목을 Yes/No로 판정한다. LLM에는 Yes 항목 번호와 근거만 간결하게 요청하고, 서버가 40개 전체 결과를 복원한다. DB 세션은 백그라운드로 처리하고, 익명/로컬 테스트 세션은 즉시 결과를 반환한다.
+프론트엔드가 보유한 Transcript, 신체진찰 로그, 루브릭 맥락을 즉시 전송한다. FastAPI는 이를 40개 항목과 대조해 Yes/No 결과를 반환한다. LLM에는 Yes 항목 번호와 근거만 간결하게 요청하고, 서버가 40개 전체 결과를 복원한다.
 
 #### Request
 ```json
 {
-  "evaluation_mode": "ASYNC",
-  "force_re_evaluate": false
+  "scenario_id": "scen-fever-5",
+  "transcripts": [
+    { "speaker": "doctor", "text": "언제부터 열이 났나요?", "time": "오후 02:10" },
+    { "speaker": "system", "text": "신체진찰 수행 소견:\n- 늑척추각 타진(CVAT): 우측 CVA 압통 양성(+)" }
+  ],
+  "rubric_data": {
+    "scenario_goals": ["발열 시작 시점 확인"],
+    "case_rubrics": []
+  },
+  "pe_log": {
+    "usedTime": 12,
+    "performed": ["cvat"],
+    "findings": [
+      { "nm": "늑척추각 타진(CVAT)", "find": "우측 CVA 압통 양성(+)" }
+    ]
+  }
 }
 ```
+
+#### Response
+```json
+{
+  "score_total": 10.0,
+  "yes_count": 4,
+  "total_items": 40,
+  "scoring_mode": "fever_checklist_yes_no_100_no_weight",
+  "items": [],
+  "missed_items": [],
+  "strengths": [],
+  "weaknesses": [],
+  "explainable_feedback": []
+}
+```
+
+프론트엔드는 응답을 즉시 성과 리포트로 변환한다. 채점 API가 실패하면 `evaluation_failed_recovery` 상태의 실패 리포트를 생성해 Transcript, PE 로그, 오류 원문을 보존한다.
+
+### 5.2 `POST /feedback/{session_id}/evaluate`
+DB에 저장된 세션을 백그라운드로 채점하기 위한 보조 API다.
+
+#### Description
+FastAPI가 해당 세션의 `Transcripts`와 신체진찰 로그를 읽어 40개 항목을 Yes/No로 판정한다. 현재 프론트엔드 실시간 결과 화면은 5.1의 동기 API를 우선 사용한다.
 
 #### Immediate Response
 ```json
 {
   "status": "processing_started",
-  "session_id": "uuid",
-  "scoring_mode": "fever_checklist_yes_no_100_no_weight",
-  "total_items": 40
+  "message": "Evaluation is running in the background."
 }
 ```
 
-프론트엔드는 Supabase Realtime으로 `Feedback_Results` INSERT/UPDATE 이벤트를 구독해 결과 화면을 갱신한다.
-
-### 5.2 `GET /feedback/{session_id}`
+### 5.3 `GET /feedback/{session_id}`
 평가 완료된 결과를 조회한다. Supabase SDK 조회로 대체 가능하지만, FastAPI를 통해 후처리된 결과를 받고 싶을 때 사용한다.
 
 #### Response
