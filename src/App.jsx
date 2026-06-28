@@ -51,8 +51,11 @@ export default function App() {
   };
 
   const handleRegister = async ({ name, email, password }) => {
-    const { error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
-    if (error) throw error;
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
+    if (error) throw new Error(error.message || JSON.stringify(error));
+    if (data?.user && !data?.session) {
+      throw new Error("회원가입 성공! (이메일 인증이 필요할 수 있습니다)");
+    }
   };
 
   const handleLogout = async () => {

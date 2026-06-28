@@ -81,17 +81,19 @@ export default function SettingsPage({ setHistory, activeTab }) {
   return (
     <div className="settings-page">
       <section className="settings-card profile-card">
-        <h2>프로필</h2>
-        <div className="profile-preview">
-          <strong className="profile-name">{name}</strong>
-          <span className="profile-role">{school.substring(0, 10)}</span>
+        <h2 style={{ margin: '0 0 12px' }}>프로필 설정</h2>
+        <div className="profile-preview" style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', marginBottom: '16px' }}>
+          <strong className="profile-name" style={{ fontSize: '1.2rem', color: '#1e293b' }}>{name || '이름 없음'}</strong>
+          <span className="profile-role" style={{ color: '#64748b', fontSize: '0.9rem' }}>{school ? school.substring(0, 15) : '소속 없음'}</span>
         </div>
-        <input id="profile-input-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="이름" />
-        <input id="profile-input-school" value={school} onChange={(e) => setSchool(e.target.value)} placeholder="학교/학년" />
-        <button type="button" id="btn-save-profile" onClick={() => alert('회원 정보 및 목표 진료 일정이 저장되었습니다.')}>
-          저장
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+          <input id="profile-input-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="이름 (예: 홍길동)" />
+          <input id="profile-input-school" value={school} onChange={(e) => setSchool(e.target.value)} placeholder="소속 (예: 의과대학 본과 3학년)" />
+        </div>
+        <button type="button" className="btn-primary" id="btn-save-profile" style={{ padding: '12px', borderRadius: '8px' }} onClick={() => alert('회원 정보 및 목표 진료 일정이 저장되었습니다.')}>
+          프로필 저장
         </button>
-        <div className="profile-chart-box">
+        <div className="profile-chart-box" style={{ marginTop: '24px' }}>
           <canvas id="profile-radar-chart" ref={chartRef} />
         </div>
       </section>

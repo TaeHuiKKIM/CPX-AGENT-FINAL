@@ -18,7 +18,14 @@ export default function LoginPage({ onLogin, onRegister, loading }) {
         await onRegister({ name, email, password });
       }
     } catch (err) {
-      setError(err.message || '로그인에 실패했습니다.');
+      let errMsg = '로그인에 실패했습니다.';
+      if (err instanceof Error) errMsg = err.message;
+      else if (typeof err === 'string') errMsg = err;
+      else if (err && err.message) errMsg = err.message;
+      else if (typeof err === 'object') errMsg = JSON.stringify(err);
+      
+      if (errMsg === '{}') errMsg = '서버 응답 오류 (테이블 미생성 등)';
+      setError(errMsg);
     }
   };
 
