@@ -161,6 +161,38 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     wsRef.current.send(JSON.stringify({ text: doctorText }));
   }, [appendMessage, session]);
 
+  const requestEvaluation = async () => {
+    const res = await fetch(`${FASTAPI_API_URL}/v1/feedback/evaluate_anonymous`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scenario_id: scenario.id,
+        transcripts: messagesRef.current,
+        rubric_data: { scenario_goals: scenario.goals, case_rubrics: scenario.rubrics },
+        pe_log: peLog
+      })
+    });
+
+    if (!res.ok) throw new Error("Evaluation API Error");
+    return res.json();
+  };
+
+  const buildHistoryRecord = (evalResult) => ({
+    id: `history-${Date.now()}`,
+    scenarioId: scenario.id,
+    date: new Date().toLocaleString('ko-KR'),
+    duration: formatTime(SESSION_DURATION_SECONDS - timer),
+    ratio: '50:50',
+    satisfaction: evalResult.score_communication ?? 0,
+    ppi: (evalResult.total_score ?? 0) >= 90 ? '매우 우수(S)' : (evalResult.total_score ?? 0) >= 80 ? '우수(A)' : (evalResult.total_score ?? 0) >= 60 ? '보통(B)' : '미흡(C)',
+    score: evalResult.total_score ?? 0,
+    transcript: messagesRef.current.length > 0 ? messagesRef.current : [{ speaker: 'patient', text: '대화 기록이 없습니다.' }],
+    ...evalResult,
+    checkedRubrics: evalResult.checkedRubrics || [],
+    checklistItems: evalResult.items || [],
+    missedItems: evalResult.missed_items || []
+  });
+
   const stopSession = useCallback(async () => {
     if (!session) return;
 
@@ -172,74 +204,24 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
 
     setIsEvaluating(true);
 
-    if (session.session_id.startsWith('test-session')) {
-      try {
-        const res = await fetch(`${FASTAPI_API_URL}/v1/feedback/evaluate_anonymous`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            scenario_id: scenario.id,
-            transcripts: messagesRef.current,
-            rubric_data: { scenario_goals: scenario.goals, case_rubrics: scenario.rubrics },
-            pe_log: peLog // PE 채점 로그 백엔드 전송
-          })
-        });
-        
-        if (!res.ok) throw new Error("Evaluation API Error");
-        const evalResult = await res.json();
-        
-        const aiRecord = {
-          id: `mock-history-${Date.now()}`,
-          scenarioId: scenario.id,
-          date: new Date().toLocaleString('ko-KR'),
-          duration: formatTime(SESSION_DURATION_SECONDS - timer),
-          ratio: '50:50',
-          satisfaction: evalResult.score_communication ?? 0,
-          ppi: (evalResult.total_score ?? 0) >= 90 ? '매우 우수(S)' : (evalResult.total_score ?? 0) >= 80 ? '우수(A)' : (evalResult.total_score ?? 0) >= 60 ? '보통(B)' : '미흡(C)',
-          score: evalResult.total_score ?? 0,
-          transcript: messagesRef.current.length > 0 ? messagesRef.current : [{ speaker: 'patient', text: '대화 기록이 없습니다.' }],
-          // HistoryPage에서 강점, 약점, 피드백을 보여주기 위해 결과 병합
-          ...evalResult,
-          checkedRubrics: evalResult.checkedRubrics || [],
-          checklistItems: evalResult.items || [],
-          missedItems: evalResult.missed_items || []
-        };
-        
-        // onFinish 먼저 → resultPopup state 세팅 → 그다음 resetRoom
-        onFinish(aiRecord, aiRecord.score);
-        resetRoom();
-      } catch (err) {
-        console.error("AI Evaluation failed:", err);
-        // 채점 실패 시: 로딩 화면만 닫고 이력 저장 안 함 (오염된 0점 데이터 방지)
-        setIsEvaluating(false);
-        alert("AI 채점 서버에 일시적인 오류가 발생했습니다.\n잠시 후 다시 종료 버튼을 눌러 재시도해 주세요.\n(서버 과부하 시 30초 후 자동 해소됩니다)");
-      }
-      return;
-    }
-
-    // Update Session status (실제 로그인 유저만)
-    await supabase.from('sessions').update({ status: 'COMPLETED', end_time: new Date().toISOString() }).eq('session_id', session.session_id);
-
-    // Trigger Evaluation in FastAPI
     try {
-      await fetch(`${FASTAPI_API_URL}/v1/feedback/evaluate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          session_id: session.session_id,
-          pe_log: peLog
-        })
-      });
-    } catch (err) {
-      console.error(err);
-    }
+      if (!session.session_id.startsWith('test-session')) {
+        await supabase
+          .from('sessions')
+          .update({ status: 'COMPLETED', end_time: new Date().toISOString() })
+          .eq('session_id', session.session_id);
+      }
 
-    onScenarioCompleted?.(scenario.id);
-    resetRoom();
-    onFinish({}, 0); // Temporary return to trigger UI change in App.jsx
+      const evalResult = await requestEvaluation();
+      const aiRecord = buildHistoryRecord(evalResult);
+      onScenarioCompleted?.(scenario.id);
+      onFinish(aiRecord, aiRecord.score);
+      resetRoom();
+    } catch (err) {
+      console.error("AI Evaluation failed:", err);
+      setIsEvaluating(false);
+      alert("AI 채점 서버에 일시적인 오류가 발생했습니다.\n잠시 후 다시 종료 버튼을 눌러 재시도해 주세요.\n(서버 과부하 시 30초 후 자동 해소됩니다)");
+    }
   }, [onFinish, onScenarioCompleted, peLog, resetRoom, scenario.id, session, timer]);
 
   useEffect(() => {
