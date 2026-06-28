@@ -98,13 +98,16 @@ function DetailedReport({ hist, scenarios }) {
 
   if (!scen) return null;
 
-  const strengths = [];
-  if (hist.checkedRubrics.includes('r1')) strengths.push('주소증 발현 기간과 지속 시간을 꼼꼼히 여쭈어 감별 진단 단서를 수집했습니다.');
-  if (hist.checkedRubrics.includes('r2')) strengths.push('환자가 호소하는 통증의 양상을 자연스럽게 문진했습니다.');
-  if (hist.checkedRubrics.includes('r4')) strengths.push('환자의 불안에 대해 공감하며 차분하게 대화를 진행했습니다.');
-  if (strengths.length === 0) strengths.push('환자가 문진에 대답하도록 적절한 흐름을 유지하였습니다.');
+  const strengths = hist.strengths?.length > 0 ? hist.strengths : [];
+  if (strengths.length === 0) {
+    if (hist.checkedRubrics.includes('r1')) strengths.push('주소증 발현 기간과 지속 시간을 꼼꼼히 여쭈어 감별 진단 단서를 수집했습니다.');
+    if (hist.checkedRubrics.includes('r2')) strengths.push('환자가 호소하는 통증의 양상을 자연스럽게 문진했습니다.');
+    if (hist.checkedRubrics.includes('r4')) strengths.push('환자의 불안에 대해 공감하며 차분하게 대화를 진행했습니다.');
+    if (strengths.length === 0) strengths.push('환자가 문진에 대답하도록 적절한 흐름을 유지하였습니다.');
+  }
 
   const missed = scen.rubrics.filter((r) => !hist.checkedRubrics.includes(r.id));
+  const weaknesses = hist.weaknesses?.length > 0 ? hist.weaknesses : missed.map(m => `[${m.category}] ${m.item} 항목 문진을 누락하였습니다.`);
 
   const showScoresTab = () => setReportTab('scores');
 
@@ -144,31 +147,41 @@ function DetailedReport({ hist, scenarios }) {
       <div className={`report-tab-content ${reportTab === 'summary' ? 'active' : ''}`} id="rep-content-summary">
         <div className="coaching-grid">
           <div>
-            <h3>잘한 점</h3>
+            <h3>잘한 점 (Strengths)</h3>
             <ul id="rep-strengths-list">
-              {strengths.map((item) => (
-                <li key={item}>{item}</li>
+              {strengths.map((item, idx) => (
+                <li key={idx}>{item}</li>
               ))}
             </ul>
           </div>
           <div>
-            <h3>보완할 점</h3>
+            <h3>보완할 점 (Weaknesses)</h3>
             <ul id="rep-improvements-list">
-              {missed.length > 0 ? (
-                missed.map((m) => (
-                  <li key={m.id}>
-                    [{m.category}] {m.item} 항목 문진을 누락하였습니다. 다음 세션에서는 꼭 질문 리스트에 포함하세요.
-                  </li>
-                ))
+              {weaknesses.length > 0 ? (
+                weaknesses.map((w, idx) => <li key={idx}>{w}</li>)
               ) : (
                 <li>보완할 점이 없습니다. 환자 치료 및 대화에 모범적인 문진을 진행하셨습니다!</li>
               )}
             </ul>
           </div>
         </div>
-        <p id="rep-coaching-tip" className="coaching-tip">
-          {missed.length > 0 ? `다음 유도 질문 예시: "${missed[0].keyword[0]}에 대해 알려주시겠습니까?"` : '현재 완벽한 상태입니다. 실전 CPX에서도 동일한 루틴으로 임해주시기 바랍니다.'}
-        </p>
+
+        {hist.explainable_feedback && hist.explainable_feedback.length > 0 && (
+          <div className="explainable-feedback-section" style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8fafc', borderLeft: '4px solid var(--primary)', borderRadius: '8px' }}>
+            <h3 style={{ color: '#0f172a', marginBottom: '10px' }}>AI 상세 피드백 (Explainable Feedback)</h3>
+            {hist.explainable_feedback.map((fb, idx) => (
+              <div key={idx} style={{ marginBottom: '10px' }}>
+                <strong style={{ color: 'var(--primary-dark)' }}>{fb.topic}</strong>: {fb.reason}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!hist.explainable_feedback && (
+          <p id="rep-coaching-tip" className="coaching-tip">
+            {missed.length > 0 ? `다음 유도 질문 예시: "${missed[0].keyword[0]}에 대해 알려주시겠습니까?"` : '현재 완벽한 상태입니다. 실전 CPX에서도 동일한 루틴으로 임해주시기 바랍니다.'}
+          </p>
+        )}
       </div>
 
       <div className={`report-tab-content ${reportTab === 'scores' ? 'active' : ''}`} id="rep-content-scores">
