@@ -57,6 +57,15 @@ const createInitialSchedules = () => {
   ];
 };
 
+const loadStoredHistory = () => {
+  try {
+    const saved = window.localStorage.getItem('medi-cpx-history-items');
+    return saved ? JSON.parse(saved) : cloneData(initialHistory);
+  } catch {
+    return cloneData(initialHistory);
+  }
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
@@ -64,7 +73,7 @@ export default function App() {
   });
   const [scenarios, setScenarios] = useState(() => cloneData(initialScenarios));
   const [notifications, setNotifications] = useState(() => cloneData(initialNotifications));
-  const [history, setHistory] = useState(() => cloneData(initialHistory));
+  const [history, setHistory] = useState(() => loadStoredHistory());
   const [scheduleItems, setScheduleItems] = useState(() => {
     try {
       const saved = window.localStorage.getItem('medi-cpx-schedule-items');
@@ -132,6 +141,16 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem('medi-cpx-schedule-items', JSON.stringify(scheduleItems));
   }, [scheduleItems]);
+
+  useEffect(() => {
+    window.localStorage.setItem('medi-cpx-history-items', JSON.stringify(history));
+  }, [history]);
+
+  useEffect(() => {
+    if (activeTab === 'history' && !selectedHistoryId && history.length > 0) {
+      setSelectedHistoryId(history[0].id);
+    }
+  }, [activeTab, history, selectedHistoryId]);
 
   const startScenario = (scenarioId, mode = 'EXAM') => {
     setSelectedModalScenarioId(null);

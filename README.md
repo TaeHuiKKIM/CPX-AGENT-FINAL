@@ -115,6 +115,10 @@ Supabase Dashboard의 SQL Editor에서 아래 파일 내용을 실행합니다.
 supabase/schema.sql
 ```
 
+현재 앱은 `scen-fever-5`처럼 문자열 기반 시나리오 ID를 사용합니다. `backend/schema.sql`은 예전 UUID 기반 설계 참고용이므로 새 Supabase 프로젝트에는 적용하지 마세요.
+
+로그인 후 연습 시작 시 브라우저 콘솔에 `DB Session insert failed, falling back to local session`이 보이면 Supabase 스키마 또는 RLS 정책이 현재 앱과 맞지 않는 상태입니다. 이 경우 `supabase/schema.sql`을 다시 실행한 뒤 재배포/새로고침해서 확인합니다.
+
 ### 3. 백엔드 실행
 
 백엔드는 `backend` 폴더에서 실행해야 루트 `.env`를 올바르게 읽습니다.

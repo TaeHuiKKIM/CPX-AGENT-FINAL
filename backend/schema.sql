@@ -2,6 +2,10 @@
 -- SPAI-CPX-AGENT Supabase Schema (PostgreSQL)
 -- Epic 1: Database Setup, Auth Triggers, and RLS Policies
 -- =================================================================================
+-- LEGACY REFERENCE ONLY.
+-- The current React/FastAPI app uses text scenario IDs such as "scen-fever-5".
+-- Do not apply this file to a new Supabase project for the current deployment.
+-- Use ../supabase/schema.sql instead.
 
 -- 1. Create Custom Types (Enums)
 CREATE TYPE user_role AS ENUM ('STUDENT', 'PROFESSOR', 'ADMIN');

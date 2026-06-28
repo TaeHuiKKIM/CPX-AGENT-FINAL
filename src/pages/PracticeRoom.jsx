@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Mic, RotateCcw, Send, Stethoscope } from 'lucide-react';
 import { formatTime } from '../utils/time';
 import { speakWithTTS } from '../utils/speech';
-import { api } from '../api/client';
 import { supabase } from '../api/supabase';
 import PhysicalExamModal from '../components/practice/PhysicalExamModal';
 
@@ -32,6 +31,8 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
   const wsRef = useRef(null); // WebSocket reference
   const messagesRef = useRef(messages);
   const timerRef = useRef(timer);
+  const peLogRef = useRef(peLog);
+  const stopInProgressRef = useRef(false);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -42,6 +43,10 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     timerRef.current = timer;
   }, [timer]);
 
+  useEffect(() => {
+    peLogRef.current = peLog;
+  }, [peLog]);
+
   const resetRoom = useCallback(() => {
     window.speechSynthesis?.cancel();
     recognitionRef.current?.stop?.();
@@ -50,13 +55,17 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
       wsRef.current = null;
     }
     setSession(null);
+    messagesRef.current = [];
     setMessages([]);
     setInputValue('');
+    peLogRef.current = { performed: [], hygEvents: [], usedTime: 0, contactCount: 0, findings: [] };
+    setPeLog(peLogRef.current);
     setTimer(SESSION_DURATION_SECONDS);
     setEmotion({ anxiety: 70, cooperation: 40, satisfaction: 50 });
     setEmotionDesc('연습을 시작하면 환자의 정서 상태가 반영됩니다.');
     setIsListening(false);
     setIsEvaluating(false);
+    stopInProgressRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -66,7 +75,9 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
 
   const appendMessage = useCallback((speaker, text, isSystem = false) => {
     const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    setMessages((prev) => [...prev, { speaker, text, time, isSystem }]);
+    const nextMessages = [...messagesRef.current, { speaker, text, time, isSystem }];
+    messagesRef.current = nextMessages;
+    setMessages(nextMessages);
   }, []);
 
   const deductSessionTime = useCallback((seconds) => {
@@ -76,6 +87,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
 
   const handlePEComplete = (log, findings) => {
     setIsPEOpen(false);
+    peLogRef.current = log;
     setPeLog(log);
     
     if (findings.length > 0) {
@@ -100,7 +112,11 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           mode: practiceMode,
           status: 'INCOMPLETE'
         }).select().single();
-        if (!error) newSession = data;
+        if (!error && data) {
+          newSession = data;
+        } else {
+          console.warn("DB Session insert failed, falling back to local session:", error || data);
+        }
       }
     } catch (err) {
       console.warn("DB Session insert failed, falling back to local session:", err);
@@ -113,6 +129,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     }
 
     setSession(newSession);
+    messagesRef.current = [];
     setMessages([]);
     setTimer(SESSION_DURATION_SECONDS);
     setEmotion({ anxiety: 70, cooperation: 40, satisfaction: 50 });
@@ -161,7 +178,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     wsRef.current.send(JSON.stringify({ text: doctorText }));
   }, [appendMessage, session]);
 
-  const requestEvaluation = async () => {
+  const requestEvaluation = useCallback(async () => {
     const res = await fetch(`${FASTAPI_API_URL}/v1/feedback/evaluate_anonymous`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -169,19 +186,22 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
         scenario_id: scenario.id,
         transcripts: messagesRef.current,
         rubric_data: { scenario_goals: scenario.goals, case_rubrics: scenario.rubrics },
-        pe_log: peLog
+        pe_log: peLogRef.current
       })
     });
 
-    if (!res.ok) throw new Error("Evaluation API Error");
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`Evaluation API Error (${res.status}) ${detail}`);
+    }
     return res.json();
-  };
+  }, [scenario.goals, scenario.id, scenario.rubrics]);
 
-  const buildHistoryRecord = (evalResult) => ({
+  const buildHistoryRecord = useCallback((evalResult) => ({
     id: `history-${Date.now()}`,
     scenarioId: scenario.id,
     date: new Date().toLocaleString('ko-KR'),
-    duration: formatTime(SESSION_DURATION_SECONDS - timer),
+    duration: formatTime(SESSION_DURATION_SECONDS - timerRef.current),
     ratio: '50:50',
     satisfaction: evalResult.score_communication ?? 0,
     ppi: (evalResult.total_score ?? 0) >= 90 ? '매우 우수(S)' : (evalResult.total_score ?? 0) >= 80 ? '우수(A)' : (evalResult.total_score ?? 0) >= 60 ? '보통(B)' : '미흡(C)',
@@ -191,10 +211,11 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     checkedRubrics: evalResult.checkedRubrics || [],
     checklistItems: evalResult.items || [],
     missedItems: evalResult.missed_items || []
-  });
+  }), [scenario.id]);
 
   const stopSession = useCallback(async () => {
-    if (!session) return;
+    if (!session || stopInProgressRef.current) return;
+    stopInProgressRef.current = true;
 
     recognitionRef.current?.stop?.();
     window.speechSynthesis?.cancel();
@@ -219,10 +240,11 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
       resetRoom();
     } catch (err) {
       console.error("AI Evaluation failed:", err);
+      stopInProgressRef.current = false;
       setIsEvaluating(false);
       alert("AI 채점 서버에 일시적인 오류가 발생했습니다.\n잠시 후 다시 종료 버튼을 눌러 재시도해 주세요.\n(서버 과부하 시 30초 후 자동 해소됩니다)");
     }
-  }, [onFinish, onScenarioCompleted, peLog, resetRoom, scenario.id, session, timer]);
+  }, [buildHistoryRecord, onFinish, onScenarioCompleted, requestEvaluation, resetRoom, session]);
 
   useEffect(() => {
     if (!session) return undefined;
@@ -319,12 +341,12 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           <strong id="session-timer-text" style={{ color: timer < 60 ? 'var(--accent-red)' : '#1e293b' }}>
             {formatTime(timer)}
           </strong>
-          <button type="button" id="btn-session-start" disabled={Boolean(session)} onClick={startSession} style={{ whiteSpace: 'nowrap' }}>
+          <button type="button" id="btn-session-start" disabled={Boolean(session) || isEvaluating} onClick={startSession} style={{ whiteSpace: 'nowrap' }}>
             연습 시작
           </button>
           <button 
             type="button" 
-            disabled={!session} 
+            disabled={!session || isEvaluating}
             onClick={() => setIsPEOpen(true)} 
             style={{ 
               display: 'flex', alignItems: 'center', gap: '4px', 
@@ -332,17 +354,19 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
               padding: '8px 12px', borderRadius: '8px', fontWeight: 'bold', 
               fontSize: '14px', marginLeft: 'auto', marginRight: '8px', 
               border: '1px solid rgba(18, 102, 255, 0.2)', whiteSpace: 'nowrap',
-              cursor: !session ? 'not-allowed' : 'pointer', opacity: !session ? 0.5 : 1
+              cursor: (!session || isEvaluating) ? 'not-allowed' : 'pointer',
+              opacity: (!session || isEvaluating) ? 0.5 : 1
             }}
           >
             <Stethoscope size={16} /> 신체진찰
           </button>
-          <button type="button" id="btn-session-stop" disabled={!session} onClick={stopSession} style={{ whiteSpace: 'nowrap' }}>
+          <button type="button" id="btn-session-stop" disabled={!session || isEvaluating} onClick={stopSession} style={{ whiteSpace: 'nowrap' }}>
             <CheckCircle2 size={15} /> 종료
           </button>
           <button
             type="button"
             title="초기화"
+            disabled={isEvaluating}
             onClick={() => {
               if (window.confirm('연습 기록이 저장되지 않고 초기화됩니다. 다시 시작하시겠습니까?')) resetRoom();
             }}
@@ -360,7 +384,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
               </div>
               <h3>AI 표준환자 연습 세션</h3>
               <p>학습 모드는 환자가 먼저 말하고, 시험 모드는 첫 질문을 기다립니다.</p>
-              <button type="button" className="btn-primary" id="btn-start-placeholder" onClick={startSession}>
+              <button type="button" className="btn-primary" id="btn-start-placeholder" disabled={isEvaluating} onClick={startSession}>
                 연습 지금 시작하기
               </button>
             </div>
@@ -396,7 +420,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
             type="button"
             id="btn-mic-toggle"
             className={isListening ? 'listening' : ''}
-            disabled={!session}
+            disabled={!session || isEvaluating}
             onClick={handleMic}
           >
             <Mic size={18} />
@@ -404,14 +428,14 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           <input
             id="chat-text-input"
             value={inputValue}
-            disabled={!session}
+            disabled={!session || isEvaluating}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSend();
             }}
             placeholder="의사 발화를 입력하세요"
           />
-          <button type="button" id="btn-send-message" disabled={!session} onClick={handleSend}>
+          <button type="button" id="btn-send-message" disabled={!session || isEvaluating} onClick={handleSend}>
             <Send size={18} />
           </button>
         </div>

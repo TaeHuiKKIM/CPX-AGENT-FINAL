@@ -33,17 +33,13 @@ CREATE TABLE IF NOT EXISTS public.sessions (
 );
 ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
 
--- Allow users to manage their own sessions (Using DO block to prevent errors if policy exists)
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'sessions' AND policyname = 'Users can manage their own sessions'
-  ) THEN
-    CREATE POLICY "Users can manage their own sessions" ON public.sessions
-      FOR ALL USING (auth.uid() = user_id);
-  END IF;
-END
-$$;
+-- Allow users to manage their own sessions.
+-- INSERT needs WITH CHECK, otherwise logged-in practice can fall back to a local-only session.
+DROP POLICY IF EXISTS "Users can manage their own sessions" ON public.sessions;
+CREATE POLICY "Users can manage their own sessions" ON public.sessions
+  FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 -- 4. Transcripts Table (Records conversation logs)
 CREATE TABLE IF NOT EXISTS public.transcripts (
