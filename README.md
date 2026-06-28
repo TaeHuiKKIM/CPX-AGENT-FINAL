@@ -2,6 +2,17 @@
 
 AI 표준화환자 기반 CPX 발열 케이스 실습 플랫폼입니다. 학생은 AI 환자와 문진하고, 별도 신체진찰 모듈에서 체위 변경, 손소독, 기물 선택, 청진/타진/촉진/수기 진찰을 수행한 뒤, 발열 CPX 40개 체크리스트 기준으로 Yes/No 자동 채점을 받습니다.
 
+## 작동 사진
+<img width="2860" height="1386" alt="image" src="https://github.com/user-attachments/assets/35fb78fc-c064-4a8c-b3c7-edbc11e387c3" />
+
+<img width="2874" height="1438" alt="image" src="https://github.com/user-attachments/assets/b15d5591-e555-4a98-8115-6fd1fdc2c9d4" />
+
+<img width="2098" height="1402" alt="image" src="https://github.com/user-attachments/assets/1b6e2540-2280-4a35-90de-68540f339499" />
+
+<img width="2832" height="1442" alt="image" src="https://github.com/user-attachments/assets/87129f0d-5cc0-4845-8bf5-bfdbe3ad493c" />
+
+<img width="2828" height="1442" alt="image" src="https://github.com/user-attachments/assets/b15c758d-42bc-4f4d-b13c-312bc43a7215" />
+
 ## 주요 기능
 
 - Supabase Auth 기반 로그인/회원가입
