@@ -22,17 +22,37 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
   const wsRef = useRef(null); // WebSocket reference
   const messagesRef = useRef(messages);
   const timerRef = useRef(timer);
+  const silenceTimerRef = useRef(null);
+
+  const resetSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+    }
+    if (!session || !wsRef.current) return;
+    
+    silenceTimerRef.current = setTimeout(() => {
+      // 10초간 입력이 없으면 백엔드로 silence 이벤트 전송
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ event: "silence" }));
+      }
+    }, 10000); // 10 seconds
+  }, [session]);
 
   useEffect(() => {
     messagesRef.current = messages;
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight });
-  }, [messages]);
+    resetSilenceTimer();
+  }, [messages, resetSilenceTimer]);
 
   useEffect(() => {
     timerRef.current = timer;
   }, [timer]);
 
   const resetRoom = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
     window.speechSynthesis?.cancel();
     recognitionRef.current?.stop?.();
     if (wsRef.current) {

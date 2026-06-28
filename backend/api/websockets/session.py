@@ -39,14 +39,20 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, mode: str = 
     
     try:
         while True:
-            # Receive STT text from client (In a real app, this might be binary audio chunks)
             data = await websocket.receive_text()
             payload = json.loads(data)
+            event_type = payload.get("event")
             user_text = payload.get("text", "")
             
-            # 1. Log User's Transcript
-            conversation_history.append({"role": "user", "content": user_text})
-            await log_transcript(session_id=session_id, speaker="USER", content=user_text)
+            if event_type == "silence":
+                # Handle 10-second silence
+                silent_prompt = "[System: 의사가 10초간 아무 말도 하지 않고 침묵 중입니다. 환자 입장에서 어색함을 표현하거나, 의사에게 질문을 먼저 던져서 대화를 유도하세요.]"
+                conversation_history.append({"role": "user", "content": silent_prompt})
+                # We don't log the silent prompt as user transcript, only as AI trigger
+            else:
+                # 1. Log User's Transcript
+                conversation_history.append({"role": "user", "content": user_text})
+                await log_transcript(session_id=session_id, speaker="USER", content=user_text)
             
             # 2. Get AI Response (LLM)
             ai_response = await generate_ai_reply(scenario_info, conversation_history, mode)
