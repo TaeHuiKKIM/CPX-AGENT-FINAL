@@ -152,7 +152,7 @@ export default function Dashboard({
           </ul>
         </section>
 
-        <section className="card-panel schedule-panel">
+        <section className="card-panel">
           <div className="section-head-row dashboard-panel-head schedule-head-row">
             <h3>이번 주 일정</h3>
             <div className="schedule-head-actions">
@@ -230,7 +230,7 @@ export default function Dashboard({
             </form>
           )}
 
-          <div id="today-goals-container" className="schedule-list" tabIndex={0}>
+          <div id="today-goals-container" className="schedule-list">
             {selectedSchedules.length === 0 ? (
               <div className="schedule-empty">선택한 날짜에 등록된 일정이 없습니다.</div>
             ) : (
