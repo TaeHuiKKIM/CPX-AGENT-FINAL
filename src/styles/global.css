@@ -110,9 +110,9 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .history-list-item { width: 100%; text-align: left; background: #f8fafc; border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 10px; }
 .history-list-item.active { border-color: var(--primary); background: #ecfeff; }
 .report-placeholder { min-height: 360px; display: grid; place-items: center; color: var(--muted); }
-.report-header-block { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-.report-header-block h2 { margin: 4px 0 0; }
-.report-header-block strong { font-size: 32px; color: var(--primary); }
+.report-header-block { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.report-header-block h2 { margin: 4px 0 0; font-size: 16px; line-height: 1.4; }
+.report-header-block strong { font-size: 32px; color: var(--primary); white-space: nowrap; }
 .report-metric-card { background: #f8fafc; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
 .report-chart-box, .profile-chart-box { height: 280px; margin: 18px 0; }
 .report-tab-row { display: flex; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
