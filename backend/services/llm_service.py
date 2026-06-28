@@ -82,3 +82,111 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
             "text": "죄송합니다, 잠시 말이 안 나오네요. 다시 질문해 주시겠어요?",
             "tutor_guide": None
         }
+
+async def generate_new_scenario(disease: str, symptom: str) -> dict:
+    """
+    Generates a new CPX scenario based on the provided disease and symptom.
+    Uses Gemini Structured Outputs to return a strictly formatted JSON.
+    """
+    logger.info(f"Generating new scenario for disease: {disease}, symptom: {symptom}")
+    
+    system_instruction = f"""
+    당신은 의과대학 실기시험(CPX) 시나리오 출제 위원입니다.
+    사용자가 요청한 질환명({disease})과 주증상({symptom})을 바탕으로, 
+    CPX 시험에 적합한 표준환자 시나리오를 작성해주세요.
+    
+    반드시 제공된 JSON 스키마에 맞추어 응답해야 합니다.
+    Rubrics는 병력청취, 진단계획, 의사소통, 설명교육 카테고리를 포함하여 총 5개 작성하세요.
+    """
+    
+    response_schema = {
+        "type": "object",
+        "properties": {
+            "id": {"type": "string", "description": "영문 소문자와 하이픈으로 구성된 고유 ID (예: scen-acute-pancreatitis)"},
+            "subject": {"type": "string", "description": "진료과 (예: 소화기내과)"},
+            "difficulty": {"type": "string", "description": "상, 중, 하 중 하나"},
+            "patientName": {"type": "string", "description": "가상의 환자 이름"},
+            "age": {"type": "integer", "description": "환자 나이"},
+            "gender": {"type": "string", "description": "남 또는 여"},
+            "tag": {"type": "string", "description": "질환명 (예: 급성 췌장염 의증)"},
+            "cc": {"type": "string", "description": "주증상 (환자의 1인칭 발화 형태)"},
+            "vs": {"type": "string", "description": "바이탈 사인 (BT, BP, HR, RR 포함)"},
+            "notes": {"type": "string", "description": "진료 메모 (의사가 유의해야 할 점)"},
+            "goals": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "5가지 학습 목표"
+            },
+            "rubrics": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string", "description": "r1, r2, r3, r4, r5"},
+                        "category": {"type": "string", "description": "병력청취, 진단계획, 의사소통, 설명교육 중 하나"},
+                        "item": {"type": "string", "description": "채점 기준 내용"},
+                        "weight": {"type": "integer", "description": "각 20점으로 고정"},
+                        "checked": {"type": "boolean", "description": "false로 고정"},
+                        "keyword": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "채점을 위한 주요 키워드 배열"
+                        }
+                    },
+                    "required": ["id", "category", "item", "weight", "checked", "keyword"]
+                },
+                "description": "5개의 루브릭"
+            },
+            "script": {
+                "type": "object",
+                "properties": {
+                    "initial": {"type": "string", "description": "환자의 최초 불만 호소 문장"},
+                    "fallback": {"type": "string", "description": "의도와 다른 질문을 받았을 때 대답 (예: 배가 너무 아파서 정신이 없네요)"},
+                    "dialogs": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "keywords": {
+                                    "type": "array",
+                                    "items": {"type": "string"}
+                                },
+                                "response": {"type": "string"}
+                            },
+                            "required": ["keywords", "response"]
+                        },
+                        "description": "예상되는 질문 키워드와 그에 따른 환자의 구체적 응답 리스트"
+                    }
+                },
+                "required": ["initial", "fallback", "dialogs"]
+            }
+        },
+        "required": ["id", "subject", "difficulty", "patientName", "age", "gender", "tag", "cc", "vs", "notes", "goals", "rubrics", "script"]
+    }
+    
+    try:
+        response = await client.aio.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=[{"role": "user", "parts": [{"text": f"질환명: {disease}, 주증상: {symptom}"}]}],
+            config={
+                "system_instruction": system_instruction,
+                "response_mime_type": "application/json",
+                "response_schema": response_schema,
+                "temperature": 0.7,
+            }
+        )
+        
+        import json
+        result = json.loads(response.text)
+        
+        # Add basic layout properties
+        result["attempts"] = 0
+        result["bestScore"] = 0
+        result["distribution"] = [0, 0, 0, 0, 0]
+        result["avatar"] = "🧑"
+        
+        return result
+    except Exception as e:
+        logger.error(f"Generate Scenario Error: {e}")
+        raise e
+

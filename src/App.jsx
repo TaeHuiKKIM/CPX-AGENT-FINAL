@@ -10,6 +10,7 @@ import ScenarioLibrary from './pages/ScenarioLibrary';
 import PracticeRoom from './pages/PracticeRoom';
 import HistoryPage from './pages/HistoryPage';
 import RubricAdmin from './pages/RubricAdmin';
+import ScenarioBuilder from './pages/ScenarioBuilder';
 import SettingsPage from './pages/SettingsPage';
 
 export default function App() {
@@ -107,6 +108,10 @@ export default function App() {
             expertLogs={expertLogs}
             setExpertLogs={setExpertLogs}
           />
+        </section>
+
+        <section className={`content-view ${activeTab === 'builder' ? 'active' : ''}`}>
+          <ScenarioBuilder scenarios={scenarios} setScenarios={setScenarios} />
         </section>
 
         <section className={`content-view ${activeTab === 'settings' ? 'active' : ''}`}>

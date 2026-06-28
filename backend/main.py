@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.websockets.session import router as websocket_router
 from api.rest.feedback import router as feedback_router
+from api.rest.scenario import router as scenario_router
 from core.exceptions import add_exception_handlers
 
 # Logger setup
@@ -31,6 +32,7 @@ add_exception_handlers(app)
 # Include Routers
 app.include_router(websocket_router, prefix="/api/v1")
 app.include_router(feedback_router, prefix="/api/v1")
+app.include_router(scenario_router, prefix="/api/v1/scenario")
 
 @app.get("/health")
 async def health_check():
