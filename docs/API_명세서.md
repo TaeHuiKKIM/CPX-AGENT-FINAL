@@ -1,57 +1,62 @@
-# API 연동 명세서 (API Specification Draft)
+# API 연동 명세서 (API Specification Draft - Enterprise Ver.)
 
 ## 1. 개요
-본 문서는 프론트엔드와 백엔드 간의 통신을 위한 RESTful API 엔드포인트를 정의합니다. 
+본 문서는 프론트엔드와 백엔드 간의 통신을 위한 API 엔드포인트를 정의합니다. 
+RESTful API 및 실시간 음성 스트리밍을 위한 WebSocket 통신 규격을 모두 포함합니다.
 *   **Base URL**: `/api/v1`
 *   **Content-Type**: `application/json`
 *   **Authorization**: `Bearer {JWT_TOKEN}`
 
-## 2. Auth API (인증)
-사용자 가입, 로그인 및 세션 관리를 담당합니다.
+## 2. Auth API (인증 및 기관)
+사용자 가입, 로그인 및 B2B 소속 인증을 담당합니다.
 
 *   `POST /auth/register`
-    *   **Description**: 이메일 및 비밀번호 회원가입
-    *   **Body**: `{ "email": "...", "password": "...", "name": "...", "grade": 3 }`
+    *   **Body**: `{ "email": "...", "password": "...", "name": "...", "organization_code": "SNU_MED" }`
 *   `POST /auth/login`
-    *   **Description**: 로그인 후 JWT 토큰 발급
 *   `GET /auth/me`
-    *   **Description**: 현재 로그인된 사용자 정보 조회
 
 ## 3. Scenarios API (시나리오)
 CPX 실습 시나리오 목록 조회 및 선택 기능을 제공합니다.
 
 *   `GET /scenarios`
-    *   **Description**: 시나리오 목록 조회 (필터링: 과목, 난이도 등)
-    *   **Query**: `?department=소화기내과&difficulty=EASY`
 *   `GET /scenarios/{scenario_id}`
-    *   **Description**: 특정 시나리오의 사전 브리핑 정보(환자 기본 정보, 주소, 목표) 조회. 
-    *   *(주의: 환자의 비밀 과거력/가족력 등은 프론트엔드에 노출되지 않으며 백엔드 LLM 프롬프트에만 주입됨)*
 
-## 4. Sessions API (실습 세션)
+## 4. Sessions API (실습 세션 - 실시간 통신 포함)
 진료 연습 시작, 종료 및 대화 제어를 담당합니다.
 
 *   `POST /sessions`
     *   **Description**: 새로운 연습 세션 시작
     *   **Body**: `{ "scenario_id": "uuid", "mode": "LEARNING" | "ACTIVE" | "EXAM" }`
-    *   **Response**: `{ "session_id": "uuid", "welcome_message": "어디가 아파서 오셨나요?" }`
-*   `POST /sessions/{session_id}/chat`
-    *   **Description**: 의대생의 발화 텍스트(STT 변환 결과) 전송 및 AI 환자의 응답 요청
-    *   **Body**: `{ "text": "가족 중에 비슷한 증상을 앓은 분이 있나요?" }`
-    *   **Response**: `{ "reply": "아버지가 고혈압이 있으십니다.", "audio_url": "https://...", "tutor_guide": "null or string (LEARNING 모드 시에만 제공)" }`
+    *   **Response**: `{ "session_id": "uuid", "welcome_message": "어디가 아파서 오셨나요?", "welcome_audio_url": "https://..." }`
+*   `WebSocket /sessions/{session_id}/stream` **[NEW]**
+    *   **Description**: STT(음성 인식) 및 TTS(음성 합성) 지연시간(Latency) 최소화를 위한 양방향 바이너리 통신.
+    *   **Client -> Server (Binary)**: 사용자의 마이크 오디오 청크 스트리밍.
+    *   **Server -> Client (JSON & Binary)**: 
+        `{ "event": "stt_result", "text": "가족력 있나요?" }`
+        `{ "event": "ai_reply", "text": "아버지가 고혈압입니다.", "tutor_guide": "null or string" }`
+        *(바이너리로 환자의 대답 음성 청크 실시간 전송)*
 *   `PUT /sessions/{session_id}/end`
-    *   **Description**: 세션 강제 종료 또는 정상 완료 처리
+    *   **Description**: 세션 정상 종료 및 결과 분석(채점) 트리거.
 
-## 5. Feedback API (평가 및 결과)
-세션 종료 후 채점 결과 및 피드백을 제공합니다.
+## 5. Feedback & History API (평가 및 결과)
+세션 종료 후 채점 결과, 피드백, 그리고 과거 대화 기록을 제공합니다.
 
 *   `GET /feedback/{session_id}`
-    *   **Description**: 특정 세션의 채점 결과 및 피드백 조회
-    *   **Response**: 병력청취/의사소통/환자교육 점수, 강점, Explainable Feedback (왜 이 질문이 필요했는지 설명하는 튜터링), 임상 사고과정 시각화(Clinical Reasoning Flow) 데이터
-*   `GET /dashboard/stats`
-    *   **Description**: 사용자의 누적 점수 추이 및 통계 데이터 제공
+    *   **Response**: 점수, 강점/약점, Explainable Feedback, 임상 사고과정 시각화 데이터.
+*   `GET /sessions/{session_id}/transcript` **[NEW]**
+    *   **Description**: 특정 세션의 대화 타임라인 및 음성 파일 경로(`audio_url`) 조회.
+*   `GET /dashboard/history` **[NEW]**
+    *   **Description**: 사용자의 과거 CPX 연습 목록(날짜, 시나리오, 점수, 모드) 조회.
 
-## 6. Admin API (관리자 전용)
-관리자 전용 데이터 관리 엔드포인트입니다. (Admin 권한 필수)
+## 6. Admin API (관리자 전용) **[EXPANDED]**
+관리자 전용 데이터베이스 조작 및 모니터링 엔드포인트입니다. (Admin 권한 필수)
 
-*   `POST /admin/scenarios` : 시나리오 신규 등록
-*   `POST /admin/rubrics` : 채점 루브릭 생성 및 버전 관리
+*   **Users & Organizations**
+    *   `GET /admin/organizations` : B2B 등록 기관 목록 조회
+    *   `POST /admin/organizations` : 신규 기관 등록 및 라이선스 발급
+    *   `GET /admin/users` : 전체 가입자 및 소속 기관 통계 조회
+*   **Scenarios & Rubrics**
+    *   `POST /admin/scenarios` : 신규 시나리오(환자 페르소나, 과거력 등) 등록
+    *   `PUT /admin/scenarios/{scenario_id}` : 시나리오 수정
+    *   `POST /admin/rubrics` : 채점 루브릭(기준표) 생성
+    *   `PUT /admin/rubrics/{rubric_id}` : 채점 루브릭 수정 및 버전 업그레이드
