@@ -143,6 +143,32 @@ http://127.0.0.1:5173/
 
 ## Cloudtype 배포 가이드
 
+### 단일 서비스 Dockerfile 배포
+
+현재 레포는 루트 `Dockerfile`로 프론트엔드를 빌드한 뒤 FastAPI가 `dist` 정적 파일과 `/api/v1` API/WebSocket을 함께 서빙할 수 있습니다.
+
+- Git Repository: `https://github.com/TaeHuiKKIM/CPX-AGENT-FINAL.git`
+- Branch: `master`
+- Build Type: `Dockerfile`
+- Dockerfile Path: `Dockerfile`
+- Port: Cloudtype 기본 `$PORT` 사용
+
+Environment Variables:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.5-flash-lite
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_supabase_service_role_key
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_API_BASE_URL=/api
+VITE_FASTAPI_BASE_URL=/api/v1
+VITE_FASTAPI_WS_URL=
+```
+
+프론트와 백엔드를 같은 Cloudtype 서비스에서 띄우는 경우 `VITE_API_BASE_URL`, `VITE_FASTAPI_BASE_URL`, `VITE_FASTAPI_WS_URL`은 위 값 그대로 두면 현재 접속 도메인을 기준으로 연결됩니다.
+
 Cloudtype에서는 프론트와 백엔드를 서비스 2개로 나누는 구성을 권장합니다.
 
 ### 1. Backend 서비스

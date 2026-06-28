@@ -1,20 +1,19 @@
-import json
-from fastapi import FastAPI, HTTPException
-from database import supabase_client
+from pathlib import Path
+import importlib.util
+import sys
 
-app = FastAPI()
+ROOT_DIR = Path(__file__).resolve().parent
+BACKEND_DIR = ROOT_DIR / "backend"
 
-@app.post("/seed-scenario")
-def seed_fever_apn_scenario():
-    try:
-        # 1. 분리해둔 외부 JSON 파일을 읽어옵니다.
-        with open("fever_data.json", "r", encoding="utf-8") as file:
-            scenario_data = json.load(file)
-            
-        # 2. 읽어온 데이터를 그대로 Supabase DB에 밀어 넣습니다.
-        response = supabase_client.table('scenarios').upsert(scenario_data).execute()
-        
-        return {"message": "DB 저장 성공!", "data": response.data}
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+for entry in ("", str(ROOT_DIR)):
+    while entry in sys.path:
+        sys.path.remove(entry)
+
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+spec = importlib.util.spec_from_file_location("cpx_backend_main", BACKEND_DIR / "main.py")
+backend_main = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(backend_main)
+
+app = backend_main.app

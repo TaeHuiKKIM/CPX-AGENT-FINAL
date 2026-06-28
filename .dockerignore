@@ -1,0 +1,15 @@
+.git
+.env
+venv
+__pycache__
+*.pyc
+node_modules
+dist
+*.log
+backend/*.log
+frontend-server.*.log
+backend-server.*.log
+pinggy.*.log
+serveo.*.log
+tunnel.*.log
+.vscode
