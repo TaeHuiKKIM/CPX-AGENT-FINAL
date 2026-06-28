@@ -54,6 +54,9 @@ if FRONTEND_DIST.exists():
     async def serve_spa(full_path: str):
         if full_path.startswith("api/"):
             return JSONResponse(status_code=404, content={"detail": "Not Found"})
+        requested_file = FRONTEND_DIST / full_path
+        if requested_file.is_file():
+            return FileResponse(requested_file)
         return FileResponse(FRONTEND_DIST / "index.html")
 
 if __name__ == "__main__":
