@@ -32,12 +32,12 @@ CPX 실습 시나리오 목록 조회 및 선택 기능을 제공합니다.
 
 *   `POST /sessions`
     *   **Description**: 새로운 연습 세션 시작
-    *   **Body**: `{ "scenario_id": "uuid" }`
+    *   **Body**: `{ "scenario_id": "uuid", "mode": "LEARNING" | "ACTIVE" | "EXAM" }`
     *   **Response**: `{ "session_id": "uuid", "welcome_message": "어디가 아파서 오셨나요?" }`
 *   `POST /sessions/{session_id}/chat`
     *   **Description**: 의대생의 발화 텍스트(STT 변환 결과) 전송 및 AI 환자의 응답 요청
     *   **Body**: `{ "text": "가족 중에 비슷한 증상을 앓은 분이 있나요?" }`
-    *   **Response**: `{ "reply": "아버지가 고혈압이 있으십니다.", "audio_url": "https://..." }`
+    *   **Response**: `{ "reply": "아버지가 고혈압이 있으십니다.", "audio_url": "https://...", "tutor_guide": "null or string (LEARNING 모드 시에만 제공)" }`
 *   `PUT /sessions/{session_id}/end`
     *   **Description**: 세션 강제 종료 또는 정상 완료 처리
 
@@ -46,7 +46,7 @@ CPX 실습 시나리오 목록 조회 및 선택 기능을 제공합니다.
 
 *   `GET /feedback/{session_id}`
     *   **Description**: 특정 세션의 채점 결과 및 피드백 조회
-    *   **Response**: 병력청취/의사소통/환자교육 점수, 강점, 약점 코칭 데이터
+    *   **Response**: 병력청취/의사소통/환자교육 점수, 강점, Explainable Feedback (왜 이 질문이 필요했는지 설명하는 튜터링), 임상 사고과정 시각화(Clinical Reasoning Flow) 데이터
 *   `GET /dashboard/stats`
     *   **Description**: 사용자의 누적 점수 추이 및 통계 데이터 제공
 
