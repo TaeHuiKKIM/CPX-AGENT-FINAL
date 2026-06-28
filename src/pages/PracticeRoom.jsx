@@ -2,22 +2,25 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Mic, RotateCcw, Send, Square } from 'lucide-react';
 import { formatTime } from '../utils/time';
 import { speakWithTTS } from '../utils/speech';
+import { api } from '../api/client';
+import { supabase } from '../api/supabase';
+
+const FASTAPI_WS_URL = import.meta.env.VITE_FASTAPI_WS_URL || 'ws://localhost:8000/api/v1';
 
 export default function PracticeRoom({ scenario, onFinish }) {
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [timer, setTimer] = useState(600);
-  const [rubricsChecked, setRubricsChecked] = useState([]);
   const [emotion, setEmotion] = useState({ anxiety: 70, cooperation: 40, satisfaction: 50 });
   const [emotionDesc, setEmotionDesc] = useState('연습을 시작하면 환자의 정서 상태가 반영됩니다.');
   const [isListening, setIsListening] = useState(false);
+  
   const chatRef = useRef(null);
   const canvasRef = useRef(null);
   const recognitionRef = useRef(null);
+  const wsRef = useRef(null); // WebSocket reference
   const messagesRef = useRef(messages);
-  const checkedRef = useRef(rubricsChecked);
-  const emotionRef = useRef(emotion);
   const timerRef = useRef(timer);
 
   useEffect(() => {
@@ -26,25 +29,20 @@ export default function PracticeRoom({ scenario, onFinish }) {
   }, [messages]);
 
   useEffect(() => {
-    checkedRef.current = rubricsChecked;
-  }, [rubricsChecked]);
-
-  useEffect(() => {
-    emotionRef.current = emotion;
-  }, [emotion]);
-
-  useEffect(() => {
     timerRef.current = timer;
   }, [timer]);
 
   const resetRoom = useCallback(() => {
     window.speechSynthesis?.cancel();
     recognitionRef.current?.stop?.();
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
     setSession(null);
     setMessages([]);
     setInputValue('');
     setTimer(600);
-    setRubricsChecked([]);
     setEmotion({ anxiety: 70, cooperation: 40, satisfaction: 50 });
     setEmotionDesc('연습을 시작하면 환자의 정서 상태가 반영됩니다.');
     setIsListening(false);
@@ -52,6 +50,7 @@ export default function PracticeRoom({ scenario, onFinish }) {
 
   useEffect(() => {
     resetRoom();
+    return () => resetRoom();
   }, [resetRoom, scenario.id]);
 
   const appendMessage = useCallback((speaker, text) => {
@@ -59,94 +58,94 @@ export default function PracticeRoom({ scenario, onFinish }) {
     setMessages((prev) => [...prev, { speaker, text, time }]);
   }, []);
 
-  const processDoctorInput = useCallback(
-    (text) => {
-      if (!session || !text.trim()) return;
+  const startSession = async () => {
+    // 1. Create a DB Session Record in Supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
 
-      const doctorText = text.trim();
-      appendMessage('doctor', doctorText);
+    const { data: newSession, error } = await supabase.from('sessions').insert({
+      user_id: user.id,
+      scenario_id: scenario.id,
+      mode: 'EXAM',
+      status: 'INCOMPLETE'
+    }).select().single();
 
-      const checkedSet = new Set(checkedRef.current);
-      let { anxiety, cooperation, satisfaction } = emotionRef.current;
+    if (error) {
+      console.error(error);
+      alert("세션 생성에 실패했습니다.");
+      return;
+    }
 
-      scenario.rubrics.forEach((rubric) => {
-        const hasMatch = rubric.keyword.some((kw) => doctorText.includes(kw));
-        if (hasMatch && !checkedSet.has(rubric.id)) {
-          checkedSet.add(rubric.id);
-          anxiety = Math.max(10, anxiety - 15);
-          cooperation = Math.min(100, cooperation + 20);
-          satisfaction = Math.min(100, satisfaction + 15);
-        }
-      });
-
-      if (['무서', '걱정', '괜찮', '안심'].some((kw) => doctorText.includes(kw))) {
-        anxiety = Math.max(10, anxiety - 25);
-        satisfaction = Math.min(100, satisfaction + 20);
-        setEmotionDesc('의사의 정서적 공감으로 환자의 불안이 많이 완화되었습니다.');
-      } else {
-        setEmotionDesc('환자가 질문에 차근차근 대답하고 있습니다.');
-      }
-
-      const newChecked = [...checkedSet];
-      checkedRef.current = newChecked;
-      setRubricsChecked(newChecked);
-      setEmotion({ anxiety, cooperation, satisfaction });
-
-      const matchedNode = scenario.script.dialogs.find((dialog) => dialog.keywords.some((kw) => doctorText.includes(kw)));
-      const responseText = matchedNode?.response ?? scenario.script.fallback;
-
-      window.setTimeout(() => {
-        appendMessage('patient', responseText);
-        speakWithTTS(responseText);
-      }, 800);
-    },
-    [appendMessage, scenario, session]
-  );
-
-  const startSession = () => {
-    const started = {
-      scenarioId: scenario.id,
-      startTime: new Date().toISOString()
-    };
-    setSession(started);
+    setSession(newSession);
     setMessages([]);
-    setRubricsChecked([]);
     setTimer(600);
     setEmotion({ anxiety: 70, cooperation: 40, satisfaction: 50 });
     setEmotionDesc('환자가 질문에 차근차근 대답하고 있습니다.');
-    appendMessage('patient', scenario.script.initial);
-    speakWithTTS(scenario.script.initial);
+
+    // 2. Connect to FastAPI WebSocket
+    const ws = new WebSocket(`${FASTAPI_WS_URL}/sessions/${newSession.session_id}/stream`);
+    ws.onopen = () => {
+      console.log("WebSocket connected!");
+      // Initial Patient Greeting
+      appendMessage('patient', scenario.patient_info?.initial_complaint || '어디가 불편해서 오셨나요?');
+      speakWithTTS(scenario.patient_info?.initial_complaint || '어디가 불편해서 오셨나요?');
+    };
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.event === 'ai_reply') {
+        appendMessage('patient', data.text);
+        speakWithTTS(data.text);
+        
+        if (data.tutor_guide) {
+          setEmotionDesc(`[튜터 힌트] ${data.tutor_guide}`);
+        } else {
+          setEmotionDesc('환자가 질문에 대답했습니다.');
+        }
+      }
+    };
+    
+    ws.onclose = () => console.log("WebSocket disconnected");
+    wsRef.current = ws;
   };
 
-  const stopSession = useCallback(() => {
+  const processDoctorInput = useCallback((text) => {
+    if (!session || !text.trim() || !wsRef.current) return;
+    
+    const doctorText = text.trim();
+    appendMessage('doctor', doctorText);
+    
+    // Send text to FastAPI via WebSocket
+    wsRef.current.send(JSON.stringify({ text: doctorText }));
+  }, [appendMessage, session]);
+
+  const stopSession = useCallback(async () => {
     if (!session) return;
 
     recognitionRef.current?.stop?.();
     window.speechSynthesis?.cancel();
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
 
-    const checkedCount = checkedRef.current.length;
-    const totalCount = scenario.rubrics.length;
-    const baseScore = Math.round((checkedCount / totalCount) * 80);
-    const ppiBonus = Math.round((emotionRef.current.satisfaction / 100) * 20);
-    const totalScore = baseScore + ppiBonus;
-    const ppiGrade = totalScore >= 90 ? '최우수(S)' : totalScore >= 80 ? '우수(A)' : '보통(B)';
+    // Update Session status
+    await supabase.from('sessions').update({ status: 'COMPLETED', end_time: new Date().toISOString() }).eq('session_id', session.session_id);
 
-    const record = {
-      id: `h${Date.now()}`,
-      scenarioId: scenario.id,
-      date: new Date().toLocaleString('ko-KR', { hour12: false }).substring(0, 16),
-      duration: formatTime(600 - timerRef.current),
-      ratio: '48:52',
-      satisfaction: emotionRef.current.satisfaction,
-      ppi: ppiGrade,
-      score: totalScore,
-      checkedRubrics: [...checkedRef.current],
-      transcript: [...messagesRef.current]
-    };
+    // Trigger Evaluation in FastAPI
+    try {
+      await api.triggerEvaluation(session.session_id);
+      alert("실습이 종료되었습니다. AI 채점이 진행 중입니다. (대시보드에서 결과를 확인하세요)");
+    } catch (err) {
+      console.error(err);
+      alert("평가 요청 중 오류가 발생했습니다.");
+    }
 
     resetRoom();
-    onFinish(record, totalScore);
-  }, [onFinish, resetRoom, scenario.id, scenario.rubrics.length, session]);
+    onFinish({}, 0); // Temporary return to trigger UI change in App.jsx
+  }, [onFinish, resetRoom, session]);
 
   useEffect(() => {
     if (!session) return undefined;
@@ -223,7 +222,7 @@ export default function PracticeRoom({ scenario, onFinish }) {
     try {
       recognitionRef.current.start();
     } catch {
-      // 이미 listening 중일 때 발생하는 예외 방지
+      // already listening
     }
   };
 
@@ -231,21 +230,11 @@ export default function PracticeRoom({ scenario, onFinish }) {
     <div className="practice-page">
       <div className="practice-patient-card">
         <h2 id="practice-patient-name">
-          {scenario.patientName} ({scenario.age}세/{scenario.gender})
+          {scenario.title} ({scenario.department})
         </h2>
-        <p id="practice-patient-tag">{scenario.tag}</p>
         <div className="patient-info-line">
-          <strong>CC</strong> <span id="practice-patient-cc">{scenario.cc}</span>
+          <strong>난이도</strong> <span id="practice-patient-cc">{scenario.difficulty}</span>
         </div>
-        <div className="patient-info-line">
-          <strong>VS</strong> <span id="practice-patient-vs">{scenario.vs}</span>
-        </div>
-        <p id="practice-patient-notes">{scenario.notes}</p>
-        <ul id="practice-patient-goals">
-          {scenario.goals.map((goal) => (
-            <li key={goal}>{goal}</li>
-          ))}
-        </ul>
       </div>
 
       <div className="practice-main-panel">
@@ -278,7 +267,6 @@ export default function PracticeRoom({ scenario, onFinish }) {
               </div>
               <h3>AI 표준환자 연습 세션</h3>
               <p>'연습 시작' 버튼을 누르면 환자가 말을 시작합니다.</p>
-              <p className="sub-text">마이크를 활성화하여 음성으로 질문하거나 키보드로 직접 텍스트를 입력할 수 있습니다.</p>
               <button type="button" className="btn-primary" id="btn-start-placeholder" onClick={startSession}>
                 연습 지금 시작하기
               </button>
@@ -329,24 +317,9 @@ export default function PracticeRoom({ scenario, onFinish }) {
       </div>
 
       <aside className="emotion-panel">
-        <h3>환자 정서 상태</h3>
-        <EmotionGauge label="불안" value={emotion.anxiety} className="anxiety" />
-        <EmotionGauge label="협조도" value={emotion.cooperation} className="coop" />
-        <EmotionGauge label="만족도" value={emotion.satisfaction} className="satisfaction" />
+        <h3>환자 상태 및 AI 튜터</h3>
         <p id="emotion-status-desc">{emotionDesc}</p>
       </aside>
-    </div>
-  );
-}
-
-function EmotionGauge({ label, value, className }) {
-  return (
-    <div className="emotion-gauge-row">
-      <span>{label}</span>
-      <div className="emotion-track">
-        <div id={`emotion-${className}-bar`} className={`emotion-fill ${className}`} style={{ width: `${value}%` }} />
-      </div>
-      <strong>{value}%</strong>
     </div>
   );
 }

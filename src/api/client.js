@@ -1,60 +1,119 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-const TOKEN_KEY = 'medi-cpx-token';
+import { supabase } from './supabase';
 
+const FASTAPI_BASE_URL = import.meta.env.VITE_FASTAPI_BASE_URL || 'http://localhost:8000/api/v1';
+
+// Legacy token methods (Supabase manages its own session, but we keep these for compatibility if needed)
 function getToken() {
-  return window.localStorage.getItem(TOKEN_KEY);
+  const sessionString = window.localStorage.getItem('sb-your-project-url-auth-token');
+  if (sessionString) {
+    try {
+      const session = JSON.parse(sessionString);
+      return session?.access_token;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
-function setToken(token) {
-  window.localStorage.setItem(TOKEN_KEY, token);
+function setToken() {
+  // Managed by Supabase
 }
 
 function clearToken() {
-  window.localStorage.removeItem(TOKEN_KEY);
+  supabase.auth.signOut();
 }
 
-async function request(path, options = {}) {
-  const { method = 'GET', body, auth = true } = options;
-  const headers = { 'Content-Type': 'application/json' };
-  const token = getToken();
-
-  if (auth && token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body)
-  });
-
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok) {
-    const message = data?.message || '서버 요청 중 오류가 발생했습니다.';
-    throw new Error(message);
-  }
-
-  return data;
+async function getFastApiHeaders() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return {
+    'Content-Type': 'application/json',
+    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+  };
 }
 
 export const api = {
   getToken,
   setToken,
   clearToken,
-  login: (email, password) => request('/auth/login', { method: 'POST', auth: false, body: { email, password } }),
-  register: (payload) => request('/auth/register', { method: 'POST', auth: false, body: payload }),
-  me: () => request('/auth/me'),
-  getScenarios: () => request('/scenarios'),
-  updateScenarioStats: (scenarioId, score) => request(`/scenarios/${scenarioId}/stats`, { method: 'PATCH', body: { score } }),
-  updateRubrics: (scenarioId, rubrics) => request(`/scenarios/${scenarioId}/rubrics`, { method: 'PUT', body: { rubrics } }),
-  getHistory: () => request('/history'),
-  createHistory: (record) => request('/history', { method: 'POST', body: record }),
-  deleteHistory: () => request('/history', { method: 'DELETE' }),
-  generatePatientResponse: (payload) => request('/ai/patient-response', { method: 'POST', body: payload })
+
+  // --- Supabase Auth ---
+  login: async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    return data.user;
+  },
+  
+  register: async ({ name, email, password }) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } }
+    });
+    if (error) throw new Error(error.message);
+    return data.user;
+  },
+  
+  me: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not logged in");
+    
+    // Fetch profile data from public.users
+    const { data: profile } = await supabase
+      .from('users')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+      
+    return profile || user;
+  },
+
+  // --- Supabase DB (Scenarios & History) ---
+  getScenarios: async () => {
+    const { data, error } = await supabase.from('scenarios').select('*, rubrics(*)');
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  
+  updateScenarioStats: async (scenarioId, score) => {
+    // Placeholder if needed
+    return { success: true };
+  },
+  
+  updateRubrics: async (scenarioId, rubrics) => {
+    const { data, error } = await supabase.from('rubrics').update({ criteria: rubrics }).eq('scenario_id', scenarioId);
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  
+  getHistory: async () => {
+    // History combines sessions and feedback_results
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*, feedback_results(*)');
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  
+  createHistory: async () => {
+    // Managed natively by FastAPI WebSocket logging now
+    return { success: true };
+  },
+  
+  deleteHistory: async () => {
+    const { error } = await supabase.from('sessions').delete().neq('session_id', '00000000-0000-0000-0000-000000000000');
+    if (error) throw new Error(error.message);
+  },
+
+  // --- FastAPI Integrations ---
+  // triggerEvaluation is the new replacement for generating patient response locally
+  triggerEvaluation: async (sessionId) => {
+    const headers = await getFastApiHeaders();
+    const response = await fetch(`${FASTAPI_BASE_URL}/feedback/${sessionId}/evaluate`, {
+      method: 'POST',
+      headers
+    });
+    if (!response.ok) throw new Error("Failed to trigger evaluation");
+    return response.json();
+  }
 };
