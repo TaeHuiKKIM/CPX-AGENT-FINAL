@@ -25,6 +25,7 @@ export default function App() {
   const [selectedHistoryId, setSelectedHistoryId] = useState(null);
   const [rubricLogs, setRubricLogs] = useState(() => cloneData(initialRubricHistoryLogs));
   const [expertLogs, setExpertLogs] = useState(() => cloneData(initialExpertTimelineLogs));
+  const [practiceMode, setPracticeMode] = useState('EXAM');
 
   const activeScenario = scenarios.find((scenario) => scenario.id === activeScenarioId) ?? scenarios[0];
   const modalScenario = scenarios.find((scenario) => scenario.id === selectedModalScenarioId);
@@ -43,9 +44,10 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const startScenario = (scenarioId) => {
+  const startScenario = (scenarioId, mode = 'EXAM') => {
     setSelectedModalScenarioId(null);
     setActiveScenarioId(scenarioId);
+    setPracticeMode(mode);
     navigateTo('practice');
   };
 
@@ -82,7 +84,7 @@ export default function App() {
         </section>
 
         <section className={`content-view ${activeTab === 'practice' ? 'active' : ''}`}>
-          <PracticeRoom scenario={activeScenario} onFinish={finishPractice} />
+          <PracticeRoom scenario={activeScenario} practiceMode={practiceMode} onFinish={finishPractice} />
         </section>
 
         <section className={`content-view ${activeTab === 'history' ? 'active' : ''}`}>
@@ -116,7 +118,7 @@ export default function App() {
         <ScenarioDetailModal
           scenario={modalScenario}
           onClose={() => setSelectedModalScenarioId(null)}
-          onStart={() => startScenario(modalScenario.id)}
+          onStart={(mode) => startScenario(modalScenario.id, mode)}
         />
       )}
     </div>

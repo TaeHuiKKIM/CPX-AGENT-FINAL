@@ -7,7 +7,7 @@ import { supabase } from '../api/supabase';
 
 const FASTAPI_WS_URL = import.meta.env.VITE_FASTAPI_WS_URL || 'ws://localhost:8000/api/v1';
 
-export default function PracticeRoom({ scenario, onFinish }) {
+export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish }) {
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -67,7 +67,7 @@ export default function PracticeRoom({ scenario, onFinish }) {
         const { data, error } = await supabase.from('sessions').insert({
           user_id: user.id,
           scenario_id: scenario.id,
-          mode: 'EXAM',
+          mode: practiceMode,
           status: 'INCOMPLETE'
         }).select().single();
         if (!error) newSession = data;
@@ -89,12 +89,17 @@ export default function PracticeRoom({ scenario, onFinish }) {
     setEmotionDesc('환자가 질문에 차근차근 대답하고 있습니다.');
 
     // 2. Connect to FastAPI WebSocket
-    const ws = new WebSocket(`${FASTAPI_WS_URL}/sessions/${newSession.session_id}/stream`);
+    const ws = new WebSocket(`${FASTAPI_WS_URL}/sessions/${newSession.session_id}/stream?mode=${practiceMode}`);
     ws.onopen = () => {
-      console.log("WebSocket connected!");
-      // Initial Patient Greeting
-      appendMessage('patient', scenario.patient_info?.initial_complaint || '어디가 불편해서 오셨나요?');
-      speakWithTTS(scenario.patient_info?.initial_complaint || '어디가 불편해서 오셨나요?');
+      console.log("WebSocket connected with mode:", practiceMode);
+      if (practiceMode === 'ACTIVE' || practiceMode === 'LEARNING') {
+        const initialMessage = scenario.cc || scenario.patient_info?.initial_complaint || '선생님, 어디가 아파서 왔습니다.';
+        appendMessage('patient', initialMessage);
+        speakWithTTS(initialMessage);
+      } else {
+        // EXAM 모드에서는 의사가 먼저 질문하기를 기다림
+        setEmotionDesc('환자가 의사 선생님의 첫 질문을 기다리고 있습니다.');
+      }
     };
     
     ws.onmessage = (event) => {
@@ -104,7 +109,7 @@ export default function PracticeRoom({ scenario, onFinish }) {
         speakWithTTS(data.text);
         
         if (data.tutor_guide) {
-          setEmotionDesc(`[튜터 힌트] ${data.tutor_guide}`);
+          setEmotionDesc(`[AI Tutor] ${data.tutor_guide}`);
         } else {
           setEmotionDesc('환자가 질문에 대답했습니다.');
         }
