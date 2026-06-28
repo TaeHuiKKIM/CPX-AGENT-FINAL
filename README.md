@@ -1,84 +1,223 @@
-# Medi-CPX (SPAI-CPX-AGENT) 🩺
+# CPX-AGENT-FINAL
 
-AI 기반 표준환자 진료(CPX) 연습 및 자동 채점 플랫폼입니다. 의과대학생 및 의료진이 언제 어디서든 AI 환자와 음성으로 진료 상황을 연습하고, 상세한 피드백과 채점 결과를 받아볼 수 있습니다.
+AI 표준화환자 기반 CPX 발열 케이스 실습 플랫폼입니다. 학생은 AI 환자와 문진하고, 별도 신체진찰 모듈에서 체위 변경, 손소독, 기물 선택, 청진/타진/촉진/수기 진찰을 수행한 뒤, 발열 CPX 40개 체크리스트 기준으로 Yes/No 자동 채점을 받습니다.
 
-## ✨ 주요 기능
+## 주요 기능
 
-*   **🔐 사용자 인증**: Supabase를 활용한 회원가입, 로그인 및 세션 관리
-*   **🗣️ 실전 같은 진료 연습 (Practice Room)**: 
-    *   사용자의 마이크 음성을 인식하여 텍스트로 변환 (STT)
-    *   AI 표준환자(LLM)가 실시간으로 대답하고 반응
-    *   10분 타이머 제공으로 실전 CPX 시험과 동일한 환경 구성
-*   **📊 AI 평가 및 피드백**:
-    *   진료 종료 시 백엔드(FastAPI)에서 대화 기록(Transcript)을 바탕으로 채점
-    *   루브릭(Rubric)에 따른 병력청취, 의사소통(PPI), 설명 및 교육 점수 산출
-    *   강점, 약점, 진단 추론 흐름 등 상세한 피드백 제공
-*   **📈 대시보드 및 통계**:
-    *   최근 10회 평균 역량을 레이더 차트로 시각화
-    *   진료 케이스별 달성도 및 연습 이력 관리
+- Supabase Auth 기반 로그인/회원가입
+- AI 표준화환자 WebSocket 대화
+- 브라우저 STT/TTS 및 텍스트 입력 지원
+- 신체진찰 플로우 모듈
+  - 체위 변경 2초 로딩 및 즉시 시간 차감
+  - 일반 진찰 5초, 환자 협조 진찰 10초 즉시 차감
+  - 청진기 등 기물 선택, 손소독, 복부 4분면 선택
+  - 수행 소견을 대화 기록과 채점 로그에 반영
+- 발열 CPX 40개 항목 Yes/No 자동 채점
+- 결과 리포트
+  - 총점, Yes 항목 수, 영역별 레이더 차트
+  - 잘한 점, 보완할 점, 상세 피드백
+  - 40개 체크리스트와 근거 문장
 
-## 🛠️ 기술 스택
+## 기술 스택
 
 ### Frontend
-*   **Framework**: React (Vite)
-*   **Styling**: Custom CSS (Vanilla, 모던 글래스모피즘 & UI/UX 적용)
-*   **State & Routing**: React Hooks
-*   **Charts & Icons**: Chart.js, Lucide-React
 
-### Backend & AI
-*   **Framework**: FastAPI (Python)
-*   **LLM Integration**: OpenAI GPT / Google Gemini (프롬프트 엔지니어링 및 환자 페르소나 적용)
-*   **Realtime**: WebSockets (실시간 음성/텍스트 스트리밍 대응)
+- React
+- Vite
+- Chart.js
+- Lucide React
+- Supabase JS Client
 
-### Database & Auth
-*   **BaaS**: Supabase (PostgreSQL)
-*   **Auth**: Supabase Auth (Email/Password)
-*   **Security**: Row Level Security (RLS) 적용
+### Backend
 
-## 🚀 로컬 실행 방법 (Getting Started)
+- FastAPI
+- Uvicorn
+- WebSocket
+- Google Gemini API
+- Supabase Python Client
 
-### 1. 환경 변수 설정
-프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 아래 값을 채워주세요.
+### Database/Auth
+
+- Supabase Auth
+- Supabase PostgreSQL
+- Row Level Security
+
+## 프로젝트 구조
+
+```text
+.
+├─ backend/
+│  ├─ main.py
+│  ├─ api/
+│  ├─ core/
+│  └─ services/
+├─ docs/
+├─ src/
+│  ├─ api/
+│  ├─ components/
+│  ├─ data/
+│  ├─ pages/
+│  └─ styles/
+├─ supabase/
+│  └─ schema.sql
+├─ package.json
+├─ vite.config.js
+└─ README.md
+```
+
+## 환경 변수
+
+프로젝트 루트에 `.env`를 만들고 아래 값을 설정합니다. `.env`는 Git에 올리지 않습니다.
+
 ```env
-# Supabase 설정
-VITE_SUPABASE_URL=your_supabase_project_url
+# Frontend
+VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_KEY=your_supabase_anon_key
 
-# AI 설정
-OPENAI_API_KEY=your_openai_api_key
+# 로컬 개발 시 Vite proxy를 쓰면 아래 값은 비워두거나 기본값으로 둡니다.
+VITE_API_BASE_URL=/api
+VITE_FASTAPI_BASE_URL=/api/v1
+VITE_FASTAPI_WS_URL=
+
+# Backend
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_supabase_service_role_key
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.5-flash-lite
 ```
 
-### 2. 데이터베이스 설정 (Supabase)
-Supabase 대시보드의 **SQL Editor**에서 `supabase/schema.sql` 파일의 내용을 복사하여 실행합니다. 
-*(이 스크립트는 기존 테이블과 충돌하지 않도록 `IF NOT EXISTS`가 적용되어 있습니다.)*
+배포 환경에서는 프론트와 백엔드 주소가 분리되므로 프론트 환경변수를 아래처럼 설정합니다.
 
-### 3. 패키지 설치 및 서버 실행
+```env
+VITE_API_BASE_URL=https://your-backend-domain/api
+VITE_FASTAPI_BASE_URL=https://your-backend-domain/api/v1
+VITE_FASTAPI_WS_URL=wss://your-backend-domain/api/v1
+```
 
-#### Frontend (React)
+## 로컬 실행
+
+### 1. 의존성 설치
+
 ```bash
-# 패키지 설치
 npm install
-
-# 프론트엔드 개발 서버 실행 (기본 포트: 5173)
-npm run dev
-```
-
-#### Backend (FastAPI)
-```bash
-# 파이썬 가상환경 생성 및 활성화
 cd backend
-python -m venv venv
-# Windows: venv\Scripts\activate
-# Mac/Linux: source venv/bin/activate
-
-# 의존성 패키지 설치
 pip install -r requirements.txt
-
-# 백엔드 서버 실행 (기본 포트: 8000)
-python -m uvicorn main:app --port 8000 --reload
 ```
 
-## 📝 라이선스
-This project is licensed under the MIT License.
+### 2. Supabase 스키마 적용
+
+Supabase Dashboard의 SQL Editor에서 아래 파일 내용을 실행합니다.
+
+```text
+supabase/schema.sql
+```
+
+### 3. 백엔드 실행
+
+백엔드는 `backend` 폴더에서 실행해야 루트 `.env`를 올바르게 읽습니다.
+
+```bash
+cd backend
+python -m uvicorn main:app --host 127.0.0.1 --port 8001
+```
+
+헬스체크:
+
+```text
+http://127.0.0.1:8001/health
+```
+
+### 4. 프론트엔드 실행
+
+```bash
+npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+접속:
+
+```text
+http://127.0.0.1:5173/
+```
+
+로컬에서는 `vite.config.js`가 `/api` 요청과 WebSocket을 `127.0.0.1:8001` 백엔드로 프록시합니다.
+
+## Cloudtype 배포 가이드
+
+Cloudtype에서는 프론트와 백엔드를 서비스 2개로 나누는 구성을 권장합니다.
+
+### 1. Backend 서비스
+
+- 서비스 이름 예시: `spai-cpx-api`
+- Root Directory: `backend`
+- Build Command:
+
+```bash
+pip install -r requirements.txt
+```
+
+- Start Command:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+- Environment Variables:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_supabase_service_role_key
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.5-flash-lite
+```
+
+배포 후 아래 경로가 정상 응답해야 합니다.
+
+```text
+https://your-backend-domain/health
+```
+
+### 2. Frontend 서비스
+
+- 서비스 이름 예시: `spai-cpx-web`
+- Root Directory: repository root
+- Build Command:
+
+```bash
+npm install && npm run build
+```
+
+- Output Directory: `dist`
+- SPA Mode: enabled
+- Environment Variables:
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_API_BASE_URL=https://your-backend-domain/api
+VITE_FASTAPI_BASE_URL=https://your-backend-domain/api/v1
+VITE_FASTAPI_WS_URL=wss://your-backend-domain/api/v1
+```
+
+환경변수를 바꾸면 프론트는 다시 빌드/배포해야 합니다.
+
+## 보안 주의
+
+- `GEMINI_API_KEY`와 `SUPABASE_KEY(service_role)`는 절대 프론트 환경변수에 넣지 않습니다.
+- 프론트에는 `VITE_SUPABASE_ANON_KEY`만 넣습니다.
+- `.env`, 로그 파일, DB 파일, 빌드 산출물, `node_modules`는 Git에 올리지 않습니다.
+- 키가 GitHub에 노출된 적이 있다면 즉시 재발급하고 기존 키를 폐기해야 합니다.
+
+## 채점 방식
+
+- 기준: 발열 CPX 체크리스트 40개 항목
+- 판정: Yes/No
+- 점수: `Yes 개수 / 40 * 100`
+- 가중치/부분점수 없음
+- LLM은 Yes 항목 번호와 짧은 근거만 반환하고, 서버가 전체 40개 결과를 복원합니다.
+
+## 개발 확인 명령
+
+```bash
+npm run build
+python -m py_compile backend/api/websockets/session.py backend/services/evaluation_service.py backend/services/llm_service.py backend/services/supabase_db.py
+```
