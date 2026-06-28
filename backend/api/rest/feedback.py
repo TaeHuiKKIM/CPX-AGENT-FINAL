@@ -1,6 +1,6 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from services.evaluation_service import evaluate_session, evaluate_transcript
 import logging
 
@@ -8,7 +8,8 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 class EvaluateRequest(BaseModel):
-    pe_log: Dict[str, Any] = None
+    session_id: str
+    pe_log: Optional[Dict[str, Any]] = None
 
 class EvaluateResponse(BaseModel):
     status: str
@@ -17,8 +18,8 @@ class EvaluateResponse(BaseModel):
 class AnonymousEvaluateRequest(BaseModel):
     scenario_id: str
     transcripts: List[Dict[str, Any]]
-    rubric_data: Dict[str, Any] = None
-    pe_log: Dict[str, Any] = None
+    rubric_data: Optional[Dict[str, Any]] = None
+    pe_log: Optional[Dict[str, Any]] = None
 
 @router.post("/feedback/{session_id}/evaluate", response_model=EvaluateResponse)
 async def trigger_evaluation(session_id: str, background_tasks: BackgroundTasks, request: EvaluateRequest = None):
@@ -35,16 +36,13 @@ async def trigger_evaluation(session_id: str, background_tasks: BackgroundTasks,
     )
 
 @router.post("/feedback/evaluate_anonymous")
-async def trigger_evaluation_anonymous(request: AnonymousEvaluateRequest):
-    """
-    Directly evaluates a transcript without DB dependency.
-    Used for local test-sessions where users don't log in.
-    Returns the evaluation JSON synchronously so the frontend can display it immediately.
-    """
+async def evaluate_anonymous_session(request: AnonymousEvaluateRequest):
     logger.info(f"Received anonymous evaluation request for scenario: {request.scenario_id}")
     
-    if not request.transcripts:
-        raise HTTPException(status_code=400, detail="Transcripts are required")
-        
-    eval_result = await evaluate_transcript(request.transcripts, request.scenario_id, request.rubric_data, request.pe_log)
-    return eval_result
+    # 빈 transcripts라도 AI가 "대화 기록 없음"으로 0점 처리하도록 허용
+    try:
+        eval_result = await evaluate_transcript(request.transcripts, request.scenario_id, request.rubric_data, request.pe_log)
+        return eval_result
+    except Exception as e:
+        logger.error(f"Anonymous Evaluation Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

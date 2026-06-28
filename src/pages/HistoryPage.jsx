@@ -10,9 +10,11 @@ export default function HistoryPage({ scenarios, history, selectedHistoryId, set
       <aside className="history-list-panel">
         <h2>연습 이력</h2>
         <div id="history-items-list">
+          {history.length === 0 && (
+            <p style={{ color: '#94a3b8', padding: '16px', textAlign: 'center' }}>아직 연습 이력이 없습니다.</p>
+          )}
           {history.map((hist) => {
             const scen = scenarios.find((s) => s.id === hist.scenarioId);
-            if (!scen) return null;
             return (
               <button
                 key={hist.id}
@@ -22,15 +24,15 @@ export default function HistoryPage({ scenarios, history, selectedHistoryId, set
                 onClick={() => setSelectedHistoryId(hist.id)}
               >
                 <div className="hist-top">
-                  <span>{hist.date}</span>
-                  <span>PPI: {hist.ppi}</span>
+                  <span>{hist.date || '날짜 없음'}</span>
+                  <span>PPI: {hist.ppi || '-'}</span>
                 </div>
                 <h4 className="hist-title">
-                  {scen.patientName} ({scen.tag})
+                  {scen ? `${scen.patientName} (${scen.tag})` : hist.scenarioId}
                 </h4>
                 <div className="hist-meta">
-                  <span>진행 시간: {hist.duration}</span>
-                  <span className="hist-score">{hist.score}점</span>
+                  <span>진행 시간: {hist.duration || '-'}</span>
+                  <span className="hist-score">{hist.score ?? 0}점</span>
                 </div>
               </button>
             );
@@ -190,7 +192,7 @@ function DetailedReport({ hist, scenarios }) {
       <div className={`report-tab-content ${reportTab === 'scores' ? 'active' : ''}`} id="rep-content-scores">
         <div id="rep-rubric-checklist">
           {scen.rubrics.map((rub) => {
-            const checked = hist.checkedRubrics.includes(rub.id);
+            const checked = (hist.checkedRubrics || []).includes(rub.id);
             return (
               <div key={rub.id} className={`rubric-report-item ${checked ? 'checked' : 'missed'}`}>
                 <div className={`rubric-item-status-icon ${checked ? 'checked' : 'missed'}`}>
@@ -213,9 +215,11 @@ function DetailedReport({ hist, scenarios }) {
 
       <div className={`report-tab-content ${reportTab === 'transcript' ? 'active' : ''}`} id="rep-content-transcript">
         <div id="rep-transcript-list">
-          {hist.transcript.map((tr, index) => {
+          {(hist.transcript || []).map((tr, index) => {
             const matchedRub =
-              tr.speaker === 'doctor' ? scen.rubrics.find((r) => r.keyword.some((kw) => tr.text.includes(kw))) : null;
+              tr.speaker === 'doctor'
+                ? scen?.rubrics?.find((r) => r.keyword?.some((kw) => tr.text?.includes(kw)))
+                : null;
             return (
               <div key={`${tr.speaker}-${index}`} className={`transcript-line ${tr.speaker}`}>
                 <span className="trans-speaker">{tr.speaker === 'doctor' ? '의사(나)' : '환자'}</span>

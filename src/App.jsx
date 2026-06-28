@@ -142,7 +142,7 @@ export default function App() {
             scenarios={scenarios}
             history={history}
             selectedHistoryId={selectedHistoryId}
-            setSelectedHistoryId={setSelectedHistoryId}
+            setSelectedHistoryId={(id) => setSelectedHistoryId(id)}
           />
         </section>
 
@@ -174,6 +174,55 @@ export default function App() {
           onClose={() => setSelectedModalScenarioId(null)}
           onStart={(mode) => startScenario(modalScenario.id, mode)}
         />
+      )}
+
+      {/* 채점 결과 팝업 */}
+      {resultPopup && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backgroundColor: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            backgroundColor: '#fff', padding: '48px 40px', borderRadius: '24px',
+            textAlign: 'center', maxWidth: '420px', width: '90%',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+            animation: 'resultPopIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275)'
+          }}>
+            <div style={{
+              width: '80px', height: '80px', background: 'linear-gradient(135deg, #0bbfaf, #0891b2)',
+              borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 20px', fontSize: '38px'
+            }}>🎉</div>
+            <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>채점 완료!</h2>
+            <p style={{ color: '#64748b', marginBottom: '28px', fontSize: '15px' }}>AI 교수님의 종합 평가가 완료되었습니다</p>
+            <div style={{
+              background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)',
+              border: '2px solid #0bbfaf', borderRadius: '16px',
+              padding: '24px', marginBottom: '28px'
+            }}>
+              <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 600 }}>총 점수</div>
+              <div style={{ fontSize: '56px', fontWeight: 900, color: '#0bbfaf', lineHeight: 1 }}>
+                {resultPopup.score}
+                <span style={{ fontSize: '20px', color: '#94a3b8', fontWeight: 500 }}>점</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setResultPopup(null)}
+              style={{
+                width: '100%', padding: '16px', background: 'linear-gradient(135deg, #0bbfaf, #0891b2)',
+                color: '#fff', border: 'none', borderRadius: '12px',
+                fontSize: '16px', fontWeight: 700, cursor: 'pointer',
+                transition: 'transform 0.15s ease'
+              }}
+              onMouseEnter={e => e.target.style.transform='scale(1.02)'}
+              onMouseLeave={e => e.target.style.transform='scale(1)'}
+            >
+              📋 상세 분석 리포트 보기
+            </button>
+          </div>
+          <style>{`@keyframes resultPopIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
+        </div>
       )}
     </div>
   );

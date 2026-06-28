@@ -1,6 +1,8 @@
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from api.websockets.session import router as websocket_router
 from api.rest.feedback import router as feedback_router
 from api.rest.scenario import router as scenario_router

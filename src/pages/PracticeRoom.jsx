@@ -14,7 +14,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
   const [inputValue, setInputValue] = useState('');
   const [isPEOpen, setIsPEOpen] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
-  const [peLog, setPeLog] = useState(null);
+  const [peLog, setPeLog] = useState({ performed: [], hygEvents: [], usedTime: 0, contactCount: 0, findings: [] });
   const [timer, setTimer] = useState(600);
   const [emotion, setEmotion] = useState({ anxiety: 70, cooperation: 40, satisfaction: 50 });
   const [emotionDesc, setEmotionDesc] = useState('연습을 시작하면 환자의 정서 상태가 반영됩니다.');
@@ -192,12 +192,15 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           checkedRubrics: evalResult.checkedRubrics || []
         };
         
-        resetRoom();
+        // onFinish 먼저 → resultPopup state 세팅 → 그다음 resetRoom
         onFinish(aiRecord, aiRecord.score);
+        resetRoom();
       } catch (err) {
         console.error("AI Evaluation failed:", err);
+        // 에러 시에도 기본 record 전달하여 팝업 표시
+        const fallbackRecord = { id: `error-history-${Date.now()}`, scenarioId: scenario.id, score: 0, checkedRubrics: [], transcript: [] };
+        onFinish(fallbackRecord, 0);
         resetRoom();
-        onFinish({ id: 'error-history', scenarioId: scenario.id, score: 0 }, 0);
       }
       return;
     }
