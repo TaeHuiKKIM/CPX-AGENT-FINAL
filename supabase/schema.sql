@@ -1,7 +1,7 @@
--- Supabase Schema for SPAI-CPX-AGENT
+-- Supabase Schema for SPAI-CPX-AGENT (Safe Version - Only creates missing tables)
 
 -- 1. Profiles Table (Optional, for extending auth users)
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid REFERENCES auth.users NOT NULL PRIMARY KEY,
   updated_at timestamp with time zone,
   username text,
@@ -11,7 +11,7 @@ CREATE TABLE public.profiles (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- 2. Scenarios Table (Optional if scenarios are hardcoded in FE, but backend uses it)
-CREATE TABLE public.scenarios (
+CREATE TABLE IF NOT EXISTS public.scenarios (
   scenario_id text PRIMARY KEY,
   title text,
   department text,
@@ -22,7 +22,7 @@ CREATE TABLE public.scenarios (
 ALTER TABLE public.scenarios ENABLE ROW LEVEL SECURITY;
 
 -- 3. Sessions Table (Records each practice attempt)
-CREATE TABLE public.sessions (
+CREATE TABLE IF NOT EXISTS public.sessions (
   session_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid REFERENCES auth.users NOT NULL,
   scenario_id text NOT NULL,
@@ -32,12 +32,21 @@ CREATE TABLE public.sessions (
   end_time timestamp with time zone
 );
 ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
--- Allow users to insert/update their own sessions
-CREATE POLICY "Users can manage their own sessions" ON public.sessions
-  FOR ALL USING (auth.uid() = user_id);
+
+-- Allow users to manage their own sessions (Using DO block to prevent errors if policy exists)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'sessions' AND policyname = 'Users can manage their own sessions'
+  ) THEN
+    CREATE POLICY "Users can manage their own sessions" ON public.sessions
+      FOR ALL USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
 -- 4. Transcripts Table (Records conversation logs)
-CREATE TABLE public.transcripts (
+CREATE TABLE IF NOT EXISTS public.transcripts (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   session_id uuid REFERENCES public.sessions NOT NULL,
   speaker text NOT NULL,
@@ -46,10 +55,9 @@ CREATE TABLE public.transcripts (
   timestamp timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 ALTER TABLE public.transcripts ENABLE ROW LEVEL SECURITY;
--- For simplicity, can restrict to user's sessions if needed
 
 -- 5. Rubrics Table
-CREATE TABLE public.rubrics (
+CREATE TABLE IF NOT EXISTS public.rubrics (
   rubric_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   scenario_id text NOT NULL,
   category text NOT NULL,
@@ -60,7 +68,7 @@ CREATE TABLE public.rubrics (
 ALTER TABLE public.rubrics ENABLE ROW LEVEL SECURITY;
 
 -- 6. Feedback Results Table
-CREATE TABLE public.feedback_results (
+CREATE TABLE IF NOT EXISTS public.feedback_results (
   result_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   session_id uuid REFERENCES public.sessions UNIQUE NOT NULL,
   rubric_id uuid,
