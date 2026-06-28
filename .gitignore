@@ -19,3 +19,6 @@ env/
 *.log
 *.db
 *.sqlite
+
+# AI Agent Rules
+.agents/
