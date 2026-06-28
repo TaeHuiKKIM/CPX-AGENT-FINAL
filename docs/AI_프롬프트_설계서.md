@@ -12,7 +12,7 @@
 - 총점: `Yes 개수 / 40 × 100`
 - 가중치: 없음
 - 부분점수: 없음
-- 기존 `잘함/보통/미흡` 표기는 사용하지 않음
+- LLM은 빠른 채점을 위해 Yes 항목 번호와 짧은 근거만 반환하고, 서버가 전체 40개 결과를 복원함
 
 
 ## 2. 환자 에이전트 핵심 대화 원칙
@@ -21,7 +21,7 @@
 2. **단답형 응답**: 실제 환자처럼 묻는 말에만 간결하게 답한다.
 3. **일반인 언어 사용**: 의학 용어보다 쉬운 표현을 사용한다.
 4. **케이스 일관성 유지**: 양성 소견과 음성 소견을 임의로 바꾸지 않는다.
-5. **진찰 요청 대응**: 학생이 진찰을 요청하면 해당 케이스의 정해진 소견만 반환한다.
+5. **진찰 로그 반영**: 학생이 신체진찰 모달에서 수행한 소견이 전달되면, 이후 환자 응답 맥락에 반영한다.
 
 ## 3. 환자 프롬프트 템플릿
 
@@ -34,7 +34,7 @@
 2. 오직 질문받은 내용에만 답하세요.
 3. 일반인의 말투로 짧고 자연스럽게 답하세요.
 4. 케이스 데이터에 없는 증상은 만들어내지 마세요.
-5. 진찰 요청이 들어오면 정해진 신체 소견만 말하세요.
+5. 신체진찰 소견이 시스템 상태로 전달되면 그 이후 대화 맥락에 반영하세요.
 
 [Scenario Data]
 - 환자 이름: {patient_name}
@@ -66,21 +66,21 @@
 [Output]
 JSON으로만 출력하세요.
 {
-  "score_total": number,
-  "yes_count": number,
-  "total_items": 40,
-  "items": [
-    {
-      "id": number,
-      "criterion": string,
-      "result": "Yes" | "No",
-      "evidence": string,
-      "feedback": string
-    }
+  "yes_items": [
+    { "id": number, "evidence": string }
   ],
-  "summary": string
+  "strengths": [string],
+  "weaknesses": [string],
+  "clinical_reasoning_flow": [
+    { "question": string, "category": string, "status": "asked" | "missed" }
+  ],
+  "explainable_feedback": [
+    { "topic": string, "reason": string }
+  ]
 }
 ```
+
+서버는 `yes_items`를 기준으로 40개 체크리스트 전체를 복원하고, Yes 개수와 총점을 계산한다.
 
 ## 5. 모드별 동작
 

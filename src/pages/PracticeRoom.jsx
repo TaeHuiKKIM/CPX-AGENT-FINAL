@@ -6,7 +6,12 @@ import { api } from '../api/client';
 import { supabase } from '../api/supabase';
 import PhysicalExamModal from '../components/practice/PhysicalExamModal';
 
-const FASTAPI_WS_URL = import.meta.env.VITE_FASTAPI_WS_URL || 'ws://localhost:8000/api/v1';
+const getFastApiWsUrl = () => {
+  if (import.meta.env.VITE_FASTAPI_WS_URL) return import.meta.env.VITE_FASTAPI_WS_URL;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}/api/v1`;
+};
+const FASTAPI_API_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish }) {
   const [session, setSession] = useState(null);
@@ -63,6 +68,11 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     setMessages((prev) => [...prev, { speaker, text, time, isSystem }]);
   }, []);
 
+  const deductSessionTime = useCallback((seconds) => {
+    if (!seconds || seconds <= 0) return;
+    setTimer((prev) => Math.max(0, prev - seconds));
+  }, []);
+
   const handlePEComplete = (log, findings) => {
     setIsPEOpen(false);
     setPeLog(log);
@@ -108,9 +118,10 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     setEmotionDesc('환자가 질문에 차근차근 대답하고 있습니다.');
 
     // 2. Connect to FastAPI WebSocket
-    const ws = new WebSocket(`${FASTAPI_WS_URL}/sessions/${newSession.session_id}/stream?mode=${practiceMode}`);
+    const ws = new WebSocket(`${getFastApiWsUrl()}/sessions/${newSession.session_id}/stream?mode=${practiceMode}`);
     ws.onopen = () => {
       console.log("WebSocket connected with mode:", practiceMode);
+      ws.send(JSON.stringify({ type: 'scenario_context', scenario }));
       if (practiceMode === 'LEARNING') {
         const initialMessage = scenario.cc || scenario.patient_info?.initial_complaint || '선생님, 어디가 아파서 왔습니다.';
         appendMessage('patient', initialMessage);
@@ -162,8 +173,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
 
     if (session.session_id.startsWith('test-session')) {
       try {
-        const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
-        const res = await fetch(`${apiUrl}/v1/feedback/evaluate_anonymous`, {
+        const res = await fetch(`${FASTAPI_API_URL}/v1/feedback/evaluate_anonymous`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -211,7 +221,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
 
     // Trigger Evaluation in FastAPI
     try {
-      await fetch(`http://127.0.0.1:8000/api/v1/feedback/evaluate`, {
+      await fetch(`${FASTAPI_API_URL}/v1/feedback/evaluate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -432,6 +442,8 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
         isOpen={isPEOpen} 
         onClose={() => setIsPEOpen(false)} 
         scenario={scenario} 
+        remainingTime={formatTime(timer)}
+        onTimeDeduct={deductSessionTime}
         onComplete={handlePEComplete}
       />
 

@@ -20,5 +20,9 @@ env/
 *.db
 *.sqlite
 
+# Node/Vite 산출물
+node_modules/
+dist/
+
 # AI Agent Rules
 .agents/

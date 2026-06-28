@@ -41,6 +41,11 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, mode: str = 
         while True:
             data = await websocket.receive_text()
             payload = json.loads(data)
+
+            if payload.get("type") == "scenario_context":
+                scenario_info.update(payload.get("scenario", {}))
+                logger.info(f"Scenario context loaded for session: {session_id}")
+                continue
             
             if payload.get("type") == "pe_results":
                 scenario_info["pe_findings"] = payload.get("findings", [])

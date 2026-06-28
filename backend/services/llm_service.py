@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import json
 from google import genai
 from core.config import settings
 
@@ -10,7 +11,44 @@ logger = logging.getLogger(__name__)
 # but passing it directly is safer.
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
-async def _call_with_retry(fn, max_retries=5):
+def _fallback_models():
+    candidates = [settings.GEMINI_MODEL, "gemini-2.5-flash", "gemini-2.0-flash"]
+    return list(dict.fromkeys(model for model in candidates if model))
+
+def _patient_info_from_scenario(scenario_info: dict) -> dict:
+    patient_info = scenario_info.get("patient_info", {})
+    return {
+        "name": patient_info.get("name") or scenario_info.get("patientName") or "김환자",
+        "age": patient_info.get("age") or scenario_info.get("age") or 45,
+        "gender": patient_info.get("gender") or scenario_info.get("gender") or "M",
+        "initial_complaint": (
+            patient_info.get("initial_complaint")
+            or scenario_info.get("cc")
+            or scenario_info.get("chiefComplaint")
+            or "어디가 불편해서 오셨나요?"
+        ),
+        "script": patient_info.get("script") or scenario_info.get("script") or "",
+    }
+
+def _local_patient_reply(scenario_info: dict, conversation_history: list) -> dict:
+    patient_info = _patient_info_from_scenario(scenario_info)
+    latest = (conversation_history[-1].get("content", "") if conversation_history else "").lower()
+    complaint = patient_info["initial_complaint"]
+
+    if any(word in latest for word in ["언제", "부터", "시작"]):
+        text = "오늘은 좀 더 심해졌고, 처음 불편한 건 며칠 전부터였던 것 같아요."
+    elif any(word in latest for word in ["어디", "부위", "아픈"]):
+        text = f"{complaint} 특히 그 증상이 제일 신경 쓰입니다."
+    elif any(word in latest for word in ["열", "체온", "오한"]):
+        text = "몸이 으슬으슬하고 열이 나는 느낌이 있어요."
+    elif any(word in latest for word in ["약", "복용", "드신"]):
+        text = "집에 있던 약을 조금 먹어봤는데 크게 나아지지는 않았어요."
+    else:
+        text = f"{complaint} 그래서 걱정돼서 왔습니다."
+
+    return {"text": text, "tutor_guide": None}
+
+async def _call_with_retry(fn, max_retries=3):
     """429/503 에러 시 지수 백오프로 최대 max_retries회 재시도"""
     for attempt in range(max_retries):
         try:
@@ -19,12 +57,32 @@ async def _call_with_retry(fn, max_retries=5):
             err_str = str(e)
             is_retryable = any(x in err_str for x in ["429", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE"])
             if is_retryable and attempt < max_retries - 1:
-                wait_time = 2 ** (attempt + 1)  # 2초, 4초, 8초, 16초, 32초
+                wait_time = 2 ** attempt
                 logger.warning(f"Rate limit/unavailable (attempt {attempt+1}/{max_retries}). Retrying in {wait_time}s...")
                 await asyncio.sleep(wait_time)
             else:
                 raise e
     raise Exception("Max retries exceeded")
+
+async def generate_content_with_model_fallback(contents, config, max_retries=3):
+    last_error = None
+    for model in _fallback_models():
+        try:
+            logger.info(f"Trying Gemini model: {model}")
+
+            async def _call(model_name=model):
+                return await client.aio.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                    config=config,
+                )
+
+            return await _call_with_retry(_call, max_retries=max_retries)
+        except Exception as e:
+            last_error = e
+            logger.warning(f"Gemini model failed ({model}): {e}")
+
+    raise last_error or Exception("Gemini response was empty")
 
 async def generate_ai_reply(scenario_info: dict, conversation_history: list, mode: str) -> dict:
     """
@@ -34,16 +92,16 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
     logger.info(f"Generating AI reply for mode: {mode} using {settings.GEMINI_MODEL}")
     
     # 1. Construct System Prompt
-    patient_info = scenario_info.get("patient_info", {})
+    patient_info = _patient_info_from_scenario(scenario_info)
     pe_findings = scenario_info.get("pe_findings", [])
     
     system_instruction = f"""
     당신은 의과대학 실기시험(CPX)의 표준환자(Standardized Patient)입니다.
     현재 상황:
-    - 환자 이름: {patient_info.get('name', '김환자')}
-    - 나이/성별: {patient_info.get('age', 45)}세 / {patient_info.get('gender', 'M')}
-    - 주증상: {patient_info.get('initial_complaint', '어디가 불편해서 오셨나요?')}
-    - 질환 스크립트: {patient_info.get('script', '')}
+    - 환자 이름: {patient_info['name']}
+    - 나이/성별: {patient_info['age']}세 / {patient_info['gender']}
+    - 주증상: {patient_info['initial_complaint']}
+    - 질환 스크립트: {patient_info['script']}
     """
     
     if pe_findings:
@@ -82,21 +140,17 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
     }
     
     try:
-        async def _call():
-            return await client.aio.models.generate_content(
-                model=settings.GEMINI_MODEL,
-                contents=contents,
-                config={
-                    "system_instruction": system_instruction,
-                    "response_mime_type": "application/json",
-                    "response_schema": response_schema,
-                    "temperature": 0.7,
-                }
-            )
-        response = await _call_with_retry(_call)
+        response = await generate_content_with_model_fallback(
+            contents=contents,
+            config={
+                "system_instruction": system_instruction,
+                "response_mime_type": "application/json",
+                "response_schema": response_schema,
+                "temperature": 0.7,
+            },
+        )
         
         # Parse response text (which is JSON)
-        import json
         result = json.loads(response.text)
         
         return {
@@ -104,11 +158,8 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
             "tutor_guide": result.get("tutor_guide", None) if mode == "LEARNING" else None
         }
     except Exception as e:
-        logger.error(f"Gemini API Error: {e}")
-        return {
-            "text": "죄송합니다, 잠시 말이 안 나오네요. 다시 질문해 주시겠어요?",
-            "tutor_guide": None
-        }
+        logger.exception(f"Gemini API Error, using local patient fallback: {e}")
+        return _local_patient_reply(scenario_info, conversation_history)
 
 async def generate_new_scenario(disease: str, symptom: str) -> dict:
     """

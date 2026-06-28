@@ -1,8 +1,15 @@
-from supabase import create_client, Client
 from core.config import settings
+
+try:
+    from supabase import create_client, Client
+except ModuleNotFoundError:
+    create_client = None
+    Client = object
 
 def get_supabase_client() -> Client:
     """Returns a Supabase client instance."""
+    if create_client is None:
+        raise RuntimeError("Supabase Python package is not installed.")
     return create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
 async def log_transcript(session_id: str, speaker: str, content: str, audio_url: str = None):
@@ -30,6 +37,8 @@ async def log_transcript(session_id: str, speaker: str, content: str, audio_url:
 
 async def get_scenario_prompt(scenario_id: str) -> dict:
     """Fetches the scenario details from Supabase to build the LLM prompt."""
+    if create_client is None:
+        return None
     supabase = get_supabase_client()
     response = supabase.table("scenarios").select("*").eq("scenario_id", scenario_id).execute()
     if response.data:

@@ -2,10 +2,10 @@ import logging
 import json
 from core.exceptions import CPXException
 from services.supabase_db import get_supabase_client
-from services.llm_service import client, _call_with_retry
-from core.config import settings
+from services.llm_service import generate_content_with_model_fallback
 
 logger = logging.getLogger(__name__)
+MAX_EVALUATION_TRANSCRIPT_CHARS = 9000
 
 FEVER_CHECKLIST_ITEMS = [
     {"id": 1, "domain": "병력 청취-주제 관련", "criterion": "발열이 시작된 시기와 지속 기간을 질문하였다."},
@@ -58,7 +58,7 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
     logger.info(f"Generating AI Evaluation for scenario: {scenario_id}")
     
     # 1. Format transcripts into a single string for the prompt
-    conversation_text = ""
+    conversation_lines = []
     for msg in transcripts:
         # Support both {"speaker": "doctor", "text": "..."} and {"role": "user", "content": "..."}
         speaker = msg.get("speaker", msg.get("role", "unknown"))
@@ -67,12 +67,13 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
         elif speaker == "system":
             speaker_role = "시스템(신체진찰 기록)"
         else:
-            speaker_role = "환자(AI)"
+            continue
         content = msg.get("text", msg.get("content", ""))
-        conversation_text += f"{speaker_role}: {content}\n"
+        if content:
+            conversation_lines.append(f"{speaker_role}: {content}")
         
-    rubric_text = json.dumps(rubric_data, ensure_ascii=False) if rubric_data else "루브릭 정보 없음"
-    checklist_text = json.dumps(FEVER_CHECKLIST_ITEMS, ensure_ascii=False)
+    conversation_text = "\n".join(conversation_lines)[-MAX_EVALUATION_TRANSCRIPT_CHARS:]
+    checklist_text = "\n".join(f"{item['id']}. [{item['domain']}] {item['criterion']}" for item in FEVER_CHECKLIST_ITEMS)
     pe_log_text = json.dumps(pe_log, ensure_ascii=False) if pe_log else "신체진찰 로그 없음"
     
     system_instruction = f"""
@@ -93,8 +94,10 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
     [공통 발열 Yes/No 체크리스트 40항목]
     {checklist_text}
 
-    [시나리오별 참고 정보]
-    {rubric_text}
+    응답은 반드시 간결하게 작성하십시오.
+    - items 전체 40개를 다시 쓰지 마십시오.
+    - Yes로 판단한 항목 번호와 짧은 근거만 반환하십시오.
+    - strengths, weaknesses, explainable_feedback은 각각 최대 3개만 반환하십시오.
     """
     
     prompt = f"""
@@ -112,38 +115,17 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
     response_schema = {
         "type": "object",
         "properties": {
-            "score_total": {"type": "number", "description": "Yes 개수 / 40 * 100"},
-            "yes_count": {"type": "integer", "description": "Yes 판정 항목 수"},
-            "total_items": {"type": "integer", "description": "항상 40"},
-            "scoring_mode": {"type": "string", "description": "fever_checklist_yes_no_100_no_weight"},
-            "items": {
+            "yes_items": {
                 "type": "array",
                 "items": {
                     "type": "object",
                     "properties": {
                         "id": {"type": "integer"},
-                        "domain": {"type": "string"},
-                        "criterion": {"type": "string"},
-                        "result": {"type": "string", "description": "Yes 또는 No"},
-                        "evidence": {"type": "string", "description": "Yes이면 학생 수행 근거, No이면 빈 문자열 또는 누락 근거"}
+                        "evidence": {"type": "string", "description": "학생이 직접 수행한 짧은 근거"}
                     },
-                    "required": ["id", "domain", "criterion", "result", "evidence"]
+                    "required": ["id", "evidence"]
                 },
-                "description": "공통 체크리스트 40개 항목 전체"
-            },
-            "missed_items": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "id": {"type": "integer"},
-                        "domain": {"type": "string"},
-                        "criterion": {"type": "string"},
-                        "why_it_matters": {"type": "string"}
-                    },
-                    "required": ["id", "domain", "criterion", "why_it_matters"]
-                },
-                "description": "No 판정 항목과 필요한 이유"
+                "description": "Yes 판정 항목만 반환"
             },
             "strengths": {
                 "type": "array",
@@ -181,22 +163,20 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
                 "description": "상세한 교정 피드백"
             }
         },
-        "required": ["score_total", "yes_count", "total_items", "scoring_mode", "items", "missed_items", "strengths", "weaknesses", "clinical_reasoning_flow", "explainable_feedback"]
+        "required": ["yes_items", "strengths", "weaknesses", "clinical_reasoning_flow", "explainable_feedback"]
     }
     
     try:
-        async def _call():
-            return await client.aio.models.generate_content(
-                model=settings.GEMINI_MODEL,
-                contents=[{"role": "user", "parts": [{"text": prompt}]}],
-                config={
-                    "system_instruction": system_instruction,
-                    "response_mime_type": "application/json",
-                    "response_schema": response_schema,
-                    "temperature": 0.2,
-                }
-            )
-        response = await _call_with_retry(_call)
+        response = await generate_content_with_model_fallback(
+            contents=[{"role": "user", "parts": [{"text": prompt}]}],
+            config={
+                "system_instruction": system_instruction,
+                "response_mime_type": "application/json",
+                "response_schema": response_schema,
+                "temperature": 0.2,
+            },
+            max_retries=1,
+        )
         
         result_json = json.loads(response.text)
         return normalize_checklist_result(result_json, pe_log)
@@ -205,7 +185,24 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
         return build_empty_checklist_result(str(e), pe_log)
 
 def normalize_checklist_result(result_json: dict, pe_log: dict = None) -> dict:
-    raw_items = result_json.get("items") or []
+    if "yes_items" in result_json and "items" not in result_json:
+        yes_by_id = {}
+        for item in result_json.get("yes_items") or []:
+            try:
+                yes_by_id[int(item.get("id"))] = item.get("evidence", "")
+            except (TypeError, ValueError):
+                continue
+        raw_items = [
+            {
+                **base,
+                "result": "Yes" if base["id"] in yes_by_id else "No",
+                "evidence": yes_by_id.get(base["id"], "")
+            }
+            for base in FEVER_CHECKLIST_ITEMS
+        ]
+    else:
+        raw_items = result_json.get("items") or []
+
     item_by_id = {}
     for item in raw_items:
         try:

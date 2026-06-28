@@ -3,6 +3,8 @@ import { X, CheckCircle, AlertCircle } from 'lucide-react';
 import '../../styles/PhysicalExamModal.css';
 
 /* ============================ DATA ============================ */
+const POSTURE_CHANGE_SECONDS = 2;
+
 const POSTURES = [
   { id: 'supine', ko: '앙와위', en: 'Supine', btn: '눕히기' },
   { id: 'sitting', ko: '좌위', en: 'Sitting', btn: '앉히기' },
@@ -73,10 +75,11 @@ const CONTACT = ['청', '타', '촉', '수기'];
 function postureKo(id) { return (POSTURES.find(p => p.id === id) || {}).ko || id; }
 function equipNm(id) { return (EQUIP.find(e => e.id === id) || {}).nm || id; }
 
-export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplete }) {
+export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplete, remainingTime, onTimeDeduct }) {
   // State
   const [mode] = useState('exam');
   const [posture, setPosture] = useState('supine');
+  const [changingPosture, setChangingPosture] = useState(null);
   const [hyg, setHyg] = useState({ entry: false, pre: false, post: false });
   const [hygEvents, setHygEvents] = useState([]);
   const [inHand, setInHand] = useState(null);
@@ -105,9 +108,28 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
     setTimeout(() => setToastMsg(null), 2500);
   };
 
+  const deductTime = (seconds) => {
+    if (seconds <= 0) return;
+    setUsedTime(prev => prev + seconds);
+    onTimeDeduct?.(seconds);
+  };
+
   const handlePosture = (id) => {
-    setPosture(id);
-    addTimeline({ kind: 'posture', label: `체위 변경 → ${postureKo(id)}`, sub: 'POSTURE' });
+    if (changingPosture || id === posture) return;
+
+    setChangingPosture(id);
+    deductTime(POSTURE_CHANGE_SECONDS);
+    addTimeline({
+      kind: 'posture',
+      label: `체위 변경 → ${postureKo(id)}`,
+      sub: `POSTURE · -${POSTURE_CHANGE_SECONDS}s`,
+      cost: POSTURE_CHANGE_SECONDS
+    });
+
+    window.setTimeout(() => {
+      setPosture(id);
+      setChangingPosture(null);
+    }, POSTURE_CHANGE_SECONDS * 1000);
   };
 
   const handleHyg = (k) => {
@@ -144,6 +166,10 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
   const performItem = (id) => {
     if (performed[id]) {
       showToast('이미 수행한 진찰입니다.', true);
+      return;
+    }
+    if (changingPosture) {
+      showToast('체위 변경 중입니다. 잠시 후 진찰을 진행하세요.', true);
       return;
     }
 
@@ -185,7 +211,7 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
     if (contact) setContactCount(prev => prev + 1);
     
     const cost = it.coop ? 10 : 5;
-    setUsedTime(prev => prev + cost);
+    deductTime(cost);
     
     const find = it.id === 'a_palp' ? palpFinding(quad) : it.find;
     if (find) {
@@ -228,7 +254,9 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
             </span>
           </div>
           <div className="pe-header-actions">
-            <span className="pe-progress-text">진행도: {Object.keys(performed).length}건</span>
+            <span className="pe-progress-text">남은 시간 {remainingTime}</span>
+            <span className="pe-progress-text">차감 {usedTime}s</span>
+            <span className="pe-progress-text">진행도 {Object.keys(performed).length}건</span>
             <button onClick={onClose} className="pe-close-btn">
               <X size={20} />
             </button>
@@ -245,12 +273,20 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
               <div className="pe-posture-display">
                 <div className="pe-posture-label">CURRENT POSTURE</div>
                 <div className="pe-posture-value">{postureKo(posture)}</div>
+                {changingPosture && (
+                  <div className="pe-posture-changing">
+                    <span className="pe-posture-spinner" />
+                    <span>{postureKo(changingPosture)} 체위로 변경 중입니다</span>
+                    <strong>-{POSTURE_CHANGE_SECONDS}s</strong>
+                  </div>
+                )}
               </div>
               <div className="pe-grid-2">
                 {POSTURES.map(p => (
                   <button 
                     key={p.id}
                     onClick={() => handlePosture(p.id)}
+                    disabled={Boolean(changingPosture)}
                     className={`pe-btn-outline ${posture === p.id ? 'active' : ''}`}
                   >
                     {p.btn}
@@ -341,6 +377,7 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
                   <button 
                     key={it.id}
                     onClick={() => performItem(it.id)}
+                    disabled={Boolean(changingPosture)}
                     className={`pe-item-btn ${done ? 'done' : ''}`}
                   >
                     <div className="pe-item-icon" style={{ backgroundColor: m.c }}>
@@ -378,6 +415,7 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
                     <div className="pe-tl-content">
                       <div className="pe-tl-label">{ev.label}</div>
                       {ev.sub && <div className="pe-tl-sub">{ev.sub}</div>}
+                      {ev.cost && <div className="pe-tl-cost">-{ev.cost}s 즉시 반영</div>}
                       {ev.find && (
                         <div className="pe-tl-find">
                           {ev.find}

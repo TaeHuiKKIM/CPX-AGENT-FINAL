@@ -79,44 +79,47 @@
 ```
 
 ### 4.2 `WebSocket /sessions/{session_id}/stream`
-STT, LLM, TTS 지연시간을 줄이기 위한 양방향 통신이다.
+브라우저에서 확정된 학생 발화 텍스트와 신체진찰 로그를 FastAPI에 전달하고, AI 환자 응답을 받는 양방향 통신이다. 브라우저 STT/TTS를 사용할 수 있지만, 서버 WebSocket은 현재 텍스트/JSON 이벤트 중심으로 동작한다.
 
 #### Client → Server
-- Binary: 사용자 마이크 오디오 청크
-- JSON: 진찰/종료 등 명령 이벤트
+- JSON: 학생 발화, 시나리오 컨텍스트, 신체진찰 결과 이벤트
 
 ```json
 {
-  "event": "exam_action",
-  "action": "check_cva_tenderness",
-  "text": "늑골척추각 압통을 확인하겠습니다."
-}
-```
-
-#### Server → Client
-```json
-{
-  "event": "stt_result",
-  "speaker": "USER",
   "text": "언제부터 열이 났나요?"
 }
 ```
 
 ```json
 {
-  "event": "ai_reply",
-  "speaker": "AI",
-  "text": "이틀 전부터 열이 났어요.",
-  "tutor_guide": null
+  "type": "scenario_context",
+  "scenario": {
+    "id": "scen-fever-3",
+    "patientName": "김민수",
+    "cc": "열이 나고 몸살처럼 아파요."
+  }
 }
 ```
 
 ```json
 {
-  "event": "exam_finding",
-  "speaker": "SYSTEM",
-  "finding_key": "CVA_tenderness",
-  "text": "우측 늑골척추각 압통이 있습니다."
+  "type": "pe_results",
+  "log": {
+    "usedTime": 17,
+    "performed": { "c_lung": { "orderOk": null } }
+  },
+  "findings": [
+    { "nm": "폐 청진", "find": "양폐 정상 호흡음, 수포음·천명음 없음" }
+  ]
+}
+```
+
+#### Server → Client
+```json
+{
+  "event": "ai_reply",
+  "text": "이틀 전부터 열이 났어요.",
+  "tutor_guide": null
 }
 ```
 
@@ -133,7 +136,7 @@ STT, LLM, TTS 지연시간을 줄이기 위한 양방향 통신이다.
 세션 종료 후 자동 채점을 시작한다.
 
 #### Description
-FastAPI가 해당 세션의 `Transcripts`와 `Rubrics.criteria.items[40]`을 읽어 40개 항목을 Yes/No로 판정한다. 채점 완료 후 `Feedback_Results`에 결과를 저장한다.
+FastAPI가 해당 세션의 `Transcripts`와 신체진찰 로그를 읽어 40개 항목을 Yes/No로 판정한다. LLM에는 Yes 항목 번호와 근거만 간결하게 요청하고, 서버가 40개 전체 결과를 복원한다. DB 세션은 백그라운드로 처리하고, 익명/로컬 테스트 세션은 즉시 결과를 반환한다.
 
 #### Request
 ```json
@@ -253,7 +256,7 @@ FastAPI가 해당 세션의 `Transcripts`와 `Rubrics.criteria.items[40]`을 읽
 | `score_total` | 총점 카드 |
 | `yes_count`, `no_count` | 수행/누락 개수 |
 | `items[]` | 40개 Yes/No 체크리스트 테이블 |
-| `items[].evidence` | 근거 발화 하이라이트 |
+| `items[].evidence` | 수행 근거 문장 |
 | `missed_items[]` | 누락 항목 코칭 카드 |
 | `domain_summary[]` | 영역별 참고 요약 |
 | `summary` | 교수 총평형 한 문단 피드백 |

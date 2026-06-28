@@ -176,11 +176,12 @@ function DetailedReport({ hist, scenarios }) {
         </div>
 
         {hist.explainable_feedback && hist.explainable_feedback.length > 0 && (
-          <div className="explainable-feedback-section" style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8fafc', borderLeft: '4px solid var(--primary)', borderRadius: '8px' }}>
-            <h3 style={{ color: '#0f172a', marginBottom: '10px' }}>AI 상세 피드백 (Explainable Feedback)</h3>
+          <div className="explainable-feedback-section">
+            <h3>AI 상세 피드백</h3>
             {hist.explainable_feedback.map((fb, idx) => (
-              <div key={idx} style={{ marginBottom: '10px' }}>
-                <strong style={{ color: 'var(--primary-dark)' }}>{fb.topic}</strong>: {fb.reason}
+              <div key={idx} className="feedback-note">
+                <strong>{fb.topic}</strong>
+                <p>{fb.reason}</p>
               </div>
             ))}
           </div>

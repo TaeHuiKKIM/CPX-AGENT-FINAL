@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const FASTAPI_BASE_URL = import.meta.env.VITE_FASTAPI_BASE_URL || 'http://localhost:8000/api/v1';
+const FASTAPI_BASE_URL = import.meta.env.VITE_FASTAPI_BASE_URL || '/api/v1';
 
 // Legacy token methods (Supabase manages its own session, but we keep these for compatibility if needed)
 function getToken() {
