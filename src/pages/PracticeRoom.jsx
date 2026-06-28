@@ -282,7 +282,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     <div className="practice-page">
       <div className="practice-patient-card">
         <h2 id="practice-patient-name">
-          {scenario.title} ({scenario.department})
+          {scenario.patientName} ({scenario.tag})
         </h2>
         <div className="patient-info-line">
           <strong>난이도</strong> <span id="practice-patient-cc">{scenario.difficulty}</span>

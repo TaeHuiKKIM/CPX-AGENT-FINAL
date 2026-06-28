@@ -12,6 +12,8 @@ import HistoryPage from './pages/HistoryPage';
 import RubricAdmin from './pages/RubricAdmin';
 import ScenarioBuilder from './pages/ScenarioBuilder';
 import SettingsPage from './pages/SettingsPage';
+import LoginPage from './pages/LoginPage';
+import { supabase } from './api/supabase';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
@@ -27,6 +29,35 @@ export default function App() {
   const [rubricLogs, setRubricLogs] = useState(() => cloneData(initialRubricHistoryLogs));
   const [expertLogs, setExpertLogs] = useState(() => cloneData(initialExpertTimelineLogs));
   const [practiceMode, setPracticeMode] = useState('EXAM');
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  };
+
+  const handleRegister = async ({ name, email, password }) => {
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
+    if (error) throw error;
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   const activeScenario = scenarios.find((scenario) => scenario.id === activeScenarioId) ?? scenarios[0];
   const modalScenario = scenarios.find((scenario) => scenario.id === selectedModalScenarioId);
@@ -53,6 +84,11 @@ export default function App() {
   };
 
   const finishPractice = (record, score) => {
+    if (!record || Object.keys(record).length === 0) {
+      navigateTo('dashboard');
+      return;
+    }
+    
     setHistory((prev) => [record, ...prev]);
     setScenarios((prev) =>
       prev.map((scenario) => {
@@ -69,9 +105,17 @@ export default function App() {
     alert(`연습 세션이 종료되었습니다! 총점: ${score}점. 성과 분석 리포트로 이동합니다.`);
   };
 
+  if (authLoading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>로딩 중...</div>;
+  }
+
+  if (!user) {
+    return <LoginPage onLogin={handleLogin} onRegister={handleRegister} loading={authLoading} />;
+  }
+
   return (
     <div className="app-shell">
-      <Sidebar activeTab={activeTab} onNavigate={navigateTo} />
+      <Sidebar activeTab={activeTab} onNavigate={navigateTo} onLogout={handleLogout} />
 
       <main className="main-content">
         <Topbar notifications={notifications} setNotifications={setNotifications} />
