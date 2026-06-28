@@ -197,10 +197,9 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
         resetRoom();
       } catch (err) {
         console.error("AI Evaluation failed:", err);
-        // 에러 시에도 기본 record 전달하여 팝업 표시
-        const fallbackRecord = { id: `error-history-${Date.now()}`, scenarioId: scenario.id, score: 0, checkedRubrics: [], transcript: [] };
-        onFinish(fallbackRecord, 0);
-        resetRoom();
+        // 채점 실패 시: 로딩 화면만 닫고 이력 저장 안 함 (오염된 0점 데이터 방지)
+        setIsEvaluating(false);
+        alert("AI 채점 서버에 일시적인 오류가 발생했습니다.\n잠시 후 다시 종료 버튼을 눌러 재시도해 주세요.\n(서버 과부하 시 30초 후 자동 해소됩니다)");
       }
       return;
     }
