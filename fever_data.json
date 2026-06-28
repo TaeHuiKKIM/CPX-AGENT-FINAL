@@ -1,0 +1,15 @@
+{
+    "case_id": "fever_pyelonephritis_01",
+    "title": "발열 - 급성 신우신염",
+    "answer_disease": "급성 신우신염",
+    "patient_info": { 
+        "name": "정수아",
+        "age": 29
+    },
+    "persona_prompt": { 
+        "disclosure_logic": "질문 시에만 공개"
+    },
+    "evaluation_rubric": { 
+        "history_taking": ["발열 양상 확인"]
+    }
+}
