@@ -1,0 +1,21 @@
+# Python 관련
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 환경 변수
+.env
+
+# 가상 환경
+venv/
+.venv/
+env/
+
+# IDE 설정 (VS Code)
+.vscode/
+.idea/
+
+# 로그 및 DB 파일
+*.log
+*.db
+*.sqlite
