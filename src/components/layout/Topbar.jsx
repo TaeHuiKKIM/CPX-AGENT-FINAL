@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Bell, LogOut } from 'lucide-react';
+import { Bell } from 'lucide-react';
 
-export default function Topbar({ notifications, setNotifications, user, onLogout }) {
+export default function Topbar({ notifications, setNotifications }) {
   const [open, setOpen] = useState(false);
   const unreadCount = notifications.filter((n) => n.unread).length;
 
@@ -18,47 +18,41 @@ export default function Topbar({ notifications, setNotifications, user, onLogout
   return (
     <header className="topbar">
       <div>
-        <h2>안녕하세요, {user?.name || '예비 의사'}님</h2>
+        <h2>안녕하세요, 예비 의사님</h2>
         <p>오늘의 CPX 연습 목표를 확인하고 바로 시작하세요.</p>
       </div>
 
-      <div className="topbar-actions">
-        <div className="notification-wrapper" onClick={(e) => e.stopPropagation()}>
-          <button type="button" className="notification-btn" onClick={() => setOpen((v) => !v)}>
-            <Bell size={18} />
-            {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
-          </button>
+      <div className="notification-wrapper" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="notification-btn" onClick={() => setOpen((v) => !v)}>
+          <Bell size={18} />
+          {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
+        </button>
 
-          <div className={`notification-modal ${open ? 'active' : ''}`}>
-            <div className="notification-header">
-              <strong>알림</strong>
+        <div className={`notification-modal ${open ? 'active' : ''}`}>
+          <div className="notification-header">
+            <strong>알림</strong>
+            <button
+              type="button"
+              id="btn-clear-notifications"
+              onClick={() => setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))}
+            >
+              모두 읽음
+            </button>
+          </div>
+          <div id="notification-list">
+            {notifications.map((n) => (
               <button
+                key={n.id}
                 type="button"
-                id="btn-clear-notifications"
-                onClick={() => setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))}
+                className={`notification-item ${n.unread ? 'unread' : ''}`}
+                onClick={() => markRead(n.id)}
               >
-                모두 읽음
+                <span className="notif-text">{n.text}</span>
+                <span className="notif-time">{n.time}</span>
               </button>
-            </div>
-            <div id="notification-list">
-              {notifications.map((n) => (
-                <button
-                  key={n.id}
-                  type="button"
-                  className={`notification-item ${n.unread ? 'unread' : ''}`}
-                  onClick={() => markRead(n.id)}
-                >
-                  <span className="notif-text">{n.text}</span>
-                  <span className="notif-time">{n.time}</span>
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
-
-        <button type="button" className="logout-btn" onClick={onLogout}>
-          <LogOut size={16} /> 로그아웃
-        </button>
       </div>
     </header>
   );

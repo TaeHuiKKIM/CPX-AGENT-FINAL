@@ -3,7 +3,7 @@ import { Mic, RotateCcw, Send, Square } from 'lucide-react';
 import { formatTime } from '../utils/time';
 import { speakWithTTS } from '../utils/speech';
 
-export default function PracticeRoom({ scenario, onFinish, onGeneratePatientResponse }) {
+export default function PracticeRoom({ scenario, onFinish }) {
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -59,20 +59,11 @@ export default function PracticeRoom({ scenario, onFinish, onGeneratePatientResp
     setMessages((prev) => [...prev, { speaker, text, time }]);
   }, []);
 
-  const fallbackPatientResponse = useCallback(
-    (doctorText) => {
-      const matchedNode = scenario.script.dialogs.find((dialog) => dialog.keywords.some((kw) => doctorText.includes(kw)));
-      return matchedNode?.response ?? scenario.script.fallback;
-    },
-    [scenario]
-  );
-
   const processDoctorInput = useCallback(
-    async (text) => {
+    (text) => {
       if (!session || !text.trim()) return;
 
       const doctorText = text.trim();
-      const doctorMessage = { speaker: 'doctor', text: doctorText };
       appendMessage('doctor', doctorText);
 
       const checkedSet = new Set(checkedRef.current);
@@ -93,36 +84,23 @@ export default function PracticeRoom({ scenario, onFinish, onGeneratePatientResp
         satisfaction = Math.min(100, satisfaction + 20);
         setEmotionDesc('의사의 정서적 공감으로 환자의 불안이 많이 완화되었습니다.');
       } else {
-        setEmotionDesc('AI 표준환자가 답변을 생성하고 있습니다.');
+        setEmotionDesc('환자가 질문에 차근차근 대답하고 있습니다.');
       }
 
       const newChecked = [...checkedSet];
-      const nextEmotion = { anxiety, cooperation, satisfaction };
       checkedRef.current = newChecked;
-      emotionRef.current = nextEmotion;
       setRubricsChecked(newChecked);
-      setEmotion(nextEmotion);
+      setEmotion({ anxiety, cooperation, satisfaction });
 
-      let responseText = fallbackPatientResponse(doctorText);
-      try {
-        if (onGeneratePatientResponse) {
-          responseText = await onGeneratePatientResponse({
-            scenario,
-            doctorText,
-            conversation: [...messagesRef.current, doctorMessage],
-            emotion: nextEmotion,
-            checkedRubrics: newChecked
-          });
-        }
-      } catch {
-        responseText = fallbackPatientResponse(doctorText);
-      }
+      const matchedNode = scenario.script.dialogs.find((dialog) => dialog.keywords.some((kw) => doctorText.includes(kw)));
+      const responseText = matchedNode?.response ?? scenario.script.fallback;
 
-      appendMessage('patient', responseText);
-      speakWithTTS(responseText);
-      setEmotionDesc('환자가 질문에 차근차근 대답하고 있습니다.');
+      window.setTimeout(() => {
+        appendMessage('patient', responseText);
+        speakWithTTS(responseText);
+      }, 800);
     },
-    [appendMessage, fallbackPatientResponse, onGeneratePatientResponse, scenario, session]
+    [appendMessage, scenario, session]
   );
 
   const startSession = () => {

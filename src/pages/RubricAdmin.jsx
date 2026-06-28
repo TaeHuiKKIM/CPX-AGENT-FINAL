@@ -9,8 +9,7 @@ export default function RubricAdmin({
   rubricLogs,
   setRubricLogs,
   expertLogs,
-  setExpertLogs,
-  onSaveRubrics
+  setExpertLogs
 }) {
   const activeScen = scenarios.find((s) => s.id === activeScenarioId) ?? scenarios[0];
   const [editRows, setEditRows] = useState(activeScen.rubrics);
@@ -38,12 +37,8 @@ export default function RubricAdmin({
     ]);
   };
 
-  const saveRubric = async () => {
-    const normalizedRows = editRows.map((row) => ({ ...row, keyword: row.keyword || [] }));
-    setScenarios((prev) => prev.map((scen) => (scen.id === activeScen.id ? { ...scen, rubrics: normalizedRows } : scen)));
-    if (onSaveRubrics) {
-      await onSaveRubrics(activeScen.id, normalizedRows);
-    }
+  const saveRubric = () => {
+    setScenarios((prev) => prev.map((scen) => (scen.id === activeScen.id ? { ...scen, rubrics: editRows } : scen)));
     const nextVer = `v1.${logs.length + 1}`;
     setRubricLogs((prev) => ({
       ...prev,
@@ -107,7 +102,7 @@ export default function RubricAdmin({
               버전 이력
             </button>
             <button type="button" id="btn-save-rubric" className="btn-primary" onClick={saveRubric}>
-              DB 저장
+              저장
             </button>
           </div>
         </div>

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Chart from 'chart.js/auto';
 
-export default function SettingsPage({ setHistory, activeTab, onDeleteHistory, user }) {
-  const [name, setName] = useState(user?.name || '김하나');
+export default function SettingsPage({ setHistory, activeTab }) {
+  const [name, setName] = useState('김하나');
   const [school, setSchool] = useState('의과대학 본과 3학년');
   const [micStatus, setMicStatus] = useState('상태: 정지됨');
   const [volume, setVolume] = useState(0);
@@ -112,15 +112,10 @@ export default function SettingsPage({ setHistory, activeTab, onDeleteHistory, u
         <button
           type="button"
           id="btn-request-data-deletion"
-          onClick={async () => {
+          onClick={() => {
             if (window.confirm('서버에 보관 중인 개인 음성 데이터 및 연습 전사 이력을 모두 영구히 삭제하시겠습니까?')) {
-              try {
-                if (onDeleteHistory) await onDeleteHistory();
-                else setHistory([]);
-                alert('모든 학습 데이터 삭제가 접수되었으며 즉각 파기되었습니다.');
-              } catch (err) {
-                alert(`데이터 삭제 실패: ${err.message}`);
-              }
+              setHistory([]);
+              alert('모든 학습 데이터 삭제가 접수되었으며 즉각 파기되었습니다.');
             }
           }}
         >
