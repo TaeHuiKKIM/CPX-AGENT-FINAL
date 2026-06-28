@@ -13,7 +13,7 @@ const getFastApiWsUrl = () => {
 };
 const FASTAPI_API_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
-export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish }) {
+export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish, onScenarioCompleted }) {
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -236,9 +236,10 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
       console.error(err);
     }
 
+    onScenarioCompleted?.(scenario.id);
     resetRoom();
     onFinish({}, 0); // Temporary return to trigger UI change in App.jsx
-  }, [onFinish, resetRoom, session]);
+  }, [onFinish, onScenarioCompleted, peLog, resetRoom, scenario.id, session, timer]);
 
   useEffect(() => {
     if (!session) return undefined;
@@ -286,7 +287,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.beginPath();
-      ctx.strokeStyle = 'var(--primary, #0bbfa9)';
+      ctx.strokeStyle = 'var(--primary, #1266ff)';
       ctx.lineWidth = 2;
       for (let x = 0; x < canvas.width; x += 1) {
         const amplitude = isListening ? Math.sin(x * 0.05 + angle) * 8 + 12 : Math.sin(x * 0.02 + angle) * 2 + 12;
@@ -344,10 +345,10 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
             onClick={() => setIsPEOpen(true)} 
             style={{ 
               display: 'flex', alignItems: 'center', gap: '4px', 
-              color: '#0bbfaf', backgroundColor: 'rgba(11, 191, 175, 0.1)', 
+              color: '#1266ff', backgroundColor: 'rgba(18, 102, 255, 0.1)', 
               padding: '8px 12px', borderRadius: '8px', fontWeight: 'bold', 
               fontSize: '14px', marginLeft: 'auto', marginRight: '8px', 
-              border: '1px solid rgba(11, 191, 175, 0.2)', whiteSpace: 'nowrap',
+              border: '1px solid rgba(18, 102, 255, 0.2)', whiteSpace: 'nowrap',
               cursor: !session ? 'not-allowed' : 'pointer', opacity: !session ? 0.5 : 1
             }}
           >
@@ -456,7 +457,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
         }}>
           <div style={{
             width: '50px', height: '50px', border: '5px solid #e2e8f0',
-            borderTopColor: '#0bbfaf', borderRadius: '50%', animation: 'spin 1s linear infinite',
+            borderTopColor: '#1266ff', borderRadius: '50%', animation: 'spin 1s linear infinite',
             marginBottom: '20px'
           }} />
           <h2 style={{ color: '#1e293b', fontSize: '24px', fontWeight: 'bold', marginBottom: '10px' }}>

@@ -84,10 +84,10 @@ function DetailedReport({ hist, scenarios }) {
           {
             label: '영역별 성취 백분율',
             data: userScores,
-            backgroundColor: 'rgba(11, 191, 169, 0.2)',
-            borderColor: 'rgba(11, 191, 169, 1)',
+            backgroundColor: 'rgba(18, 102, 255, 0.2)',
+            borderColor: 'rgba(18, 102, 255, 1)',
             borderWidth: 2,
-            pointBackgroundColor: 'rgba(11, 191, 169, 1)'
+            pointBackgroundColor: 'rgba(18, 102, 255, 1)'
           }
         ]
       },
