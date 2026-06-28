@@ -126,14 +126,14 @@ input, select { border: 1px solid var(--border); border-radius: 8px; padding: 10
 .bar-col.my-score { background: var(--primary); }
 .btn-primary { background: linear-gradient(135deg, var(--primary), #4f7dff); color: white; border-radius: 8px; padding: 10px 14px; box-shadow: 0 10px 22px rgba(18, 102, 255, .18); }
 
-.practice-page { display: grid; grid-template-columns: 280px minmax(0, 1fr) 260px; gap: 16px; }
+.practice-page { display: grid; grid-template-columns: 280px minmax(0, 1fr) 260px; gap: 16px; padding-top: 14px; }
 .practice-patient-card h2 { margin-top: 0; }
 .patient-info-line { margin: 10px 0; }
 .session-toolbar { margin-bottom: 12px; }
 .session-toolbar button, #btn-modal-cancel, #carousel-next-btn, #btn-add-rubric-item, #btn-rubric-history, #btn-save-profile, #btn-test-mic, #btn-download-report, #btn-add-workflow-comment { background: #f1f5f9; border-radius: 8px; padding: 9px 12px; display: inline-flex; align-items: center; gap: 6px; }
 button:disabled { opacity: .45; cursor: not-allowed; }
 .chat-transcript-container { min-height: 420px; max-height: 520px; overflow: auto; background: #f8fafc; border: 1px solid #edf1f6; border-radius: 8px; padding: 16px; }
-.chat-placeholder { height: 100%; display: grid; place-items: center; text-align: center; color: var(--muted); }
+.chat-placeholder { min-height: 360px; height: 100%; display: grid; place-items: center; text-align: center; color: var(--muted); }
 .placeholder-icon { color: var(--primary); }
 .chat-bubble { max-width: 78%; margin-bottom: 12px; }
 .chat-bubble.doctor { margin-left: auto; }

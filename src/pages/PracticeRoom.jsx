@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Mic, RotateCcw, Send, Square, Stethoscope } from 'lucide-react';
+import { CheckCircle2, Mic, RotateCcw, Send, Stethoscope } from 'lucide-react';
 import { formatTime } from '../utils/time';
 import { speakWithTTS } from '../utils/speech';
 import { api } from '../api/client';
@@ -12,6 +12,7 @@ const getFastApiWsUrl = () => {
   return `${protocol}//${window.location.host}/api/v1`;
 };
 const FASTAPI_API_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const SESSION_DURATION_SECONDS = 12 * 60;
 
 export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish, onScenarioCompleted }) {
   const [session, setSession] = useState(null);
@@ -20,7 +21,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
   const [isPEOpen, setIsPEOpen] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [peLog, setPeLog] = useState({ performed: [], hygEvents: [], usedTime: 0, contactCount: 0, findings: [] });
-  const [timer, setTimer] = useState(600);
+  const [timer, setTimer] = useState(SESSION_DURATION_SECONDS);
   const [emotion, setEmotion] = useState({ anxiety: 70, cooperation: 40, satisfaction: 50 });
   const [emotionDesc, setEmotionDesc] = useState('연습을 시작하면 환자의 정서 상태가 반영됩니다.');
   const [isListening, setIsListening] = useState(false);
@@ -51,7 +52,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     setSession(null);
     setMessages([]);
     setInputValue('');
-    setTimer(600);
+    setTimer(SESSION_DURATION_SECONDS);
     setEmotion({ anxiety: 70, cooperation: 40, satisfaction: 50 });
     setEmotionDesc('연습을 시작하면 환자의 정서 상태가 반영됩니다.');
     setIsListening(false);
@@ -113,7 +114,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
 
     setSession(newSession);
     setMessages([]);
-    setTimer(600);
+    setTimer(SESSION_DURATION_SECONDS);
     setEmotion({ anxiety: 70, cooperation: 40, satisfaction: 50 });
     setEmotionDesc('환자가 질문에 차근차근 대답하고 있습니다.');
 
@@ -191,7 +192,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           id: `mock-history-${Date.now()}`,
           scenarioId: scenario.id,
           date: new Date().toLocaleString('ko-KR'),
-          duration: formatTime(600 - timer),
+          duration: formatTime(SESSION_DURATION_SECONDS - timer),
           ratio: '50:50',
           satisfaction: evalResult.score_communication ?? 0,
           ppi: (evalResult.total_score ?? 0) >= 90 ? '매우 우수(S)' : (evalResult.total_score ?? 0) >= 80 ? '우수(A)' : (evalResult.total_score ?? 0) >= 60 ? '보통(B)' : '미흡(C)',
@@ -355,7 +356,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
             <Stethoscope size={16} /> 신체진찰
           </button>
           <button type="button" id="btn-session-stop" disabled={!session} onClick={stopSession} style={{ whiteSpace: 'nowrap' }}>
-            <Square size={14} /> 종료
+            <CheckCircle2 size={15} /> 종료
           </button>
           <button
             type="button"

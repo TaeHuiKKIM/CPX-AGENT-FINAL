@@ -5,7 +5,7 @@ import '../../styles/PhysicalExamModal.css';
 /* ============================ DATA ============================ */
 const POSTURE_CHANGE_SECONDS = 2;
 const DEFAULT_EXAM_SECONDS = 5;
-const COOPERATIVE_EXAM_SECONDS = 12;
+const COOPERATIVE_EXAM_SECONDS = 10;
 
 const POSTURES = [
   { id: 'supine', ko: '앙와위', en: 'Supine', btn: '눕히기' },
