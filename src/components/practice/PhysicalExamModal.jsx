@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, CheckCircle, AlertCircle } from 'lucide-react';
+import '../../styles/PhysicalExamModal.css';
 
 /* ============================ DATA ============================ */
 const POSTURES = [
@@ -20,7 +21,7 @@ const EQUIP = [
 ];
 
 const MOD = {
-  '시': { c: 'var(--primary)', lab: '시진' },
+  '시': { c: '#0bbfaf', lab: '시진' },
   '청': { c: '#11B89E', lab: '청진' },
   '타': { c: '#B06A06', lab: '타진' },
   '촉': { c: '#2E6FA8', lab: '촉진' },
@@ -201,10 +202,9 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
   };
 
   const handleFinish = () => {
-    // Generate scoring log to pass to parent
     const log = {
       introDone,
-      performed, // 전체 객체 (orderOk, quad 포함)
+      performed,
       hygEvents,
       contactCount,
       usedTime,
@@ -217,41 +217,41 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl flex flex-col max-h-[90vh] overflow-hidden">
+    <div className="pe-modal-overlay">
+      <div className="pe-modal-container">
         {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-slate-800">신체진찰 모듈</h2>
-            <span className="px-3 py-1 bg-[#0bbfaf]/10 text-[#0bbfaf] text-sm font-semibold rounded-full">
+        <div className="pe-modal-header">
+          <div className="pe-modal-title-group">
+            <h2 className="pe-modal-title">신체진찰 모듈</h2>
+            <span className="pe-patient-tag">
               {scenario?.patientName} 환자 ({scenario?.tag})
             </span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-mono text-slate-500">진행도: {Object.keys(performed).length}건</span>
-            <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-              <X size={20} className="text-slate-500" />
+          <div className="pe-header-actions">
+            <span className="pe-progress-text">진행도: {Object.keys(performed).length}건</span>
+            <button onClick={onClose} className="pe-close-btn">
+              <X size={20} />
             </button>
           </div>
         </div>
 
         {/* 3-PANEL LAYOUT */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="pe-modal-body">
           
           {/* LEFT: STATUS */}
-          <div className="w-64 border-r bg-slate-50 p-5 overflow-y-auto flex flex-col gap-6">
+          <div className="pe-panel-left">
             <div>
-              <h3 className="text-xs font-bold text-slate-400 tracking-wider mb-3">환자 · 체위</h3>
-              <div className="bg-[#0bbfaf] text-white p-3 rounded-xl mb-3 shadow-sm">
-                <div className="text-[10px] font-mono opacity-80 mb-1">CURRENT POSTURE</div>
-                <div className="font-bold text-lg">{postureKo(posture)}</div>
+              <h3 className="pe-section-title">환자 · 체위</h3>
+              <div className="pe-posture-display">
+                <div className="pe-posture-label">CURRENT POSTURE</div>
+                <div className="pe-posture-value">{postureKo(posture)}</div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="pe-grid-2">
                 {POSTURES.map(p => (
                   <button 
                     key={p.id}
                     onClick={() => handlePosture(p.id)}
-                    className={`p-2 text-sm font-semibold rounded-lg border transition-colors ${posture === p.id ? 'bg-[#0bbfaf]/10 border-[#0bbfaf] text-[#0bbfaf]' : 'bg-white border-slate-200 text-slate-600 hover:border-[#0bbfaf]/50'}`}
+                    className={`pe-btn-outline ${posture === p.id ? 'active' : ''}`}
                   >
                     {p.btn}
                   </button>
@@ -260,31 +260,31 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
             </div>
 
             <div>
-              <h3 className="text-xs font-bold text-slate-400 tracking-wider mb-3">손소독</h3>
+              <h3 className="pe-section-title">손소독</h3>
               <button 
                 onClick={handleHygOne}
-                className={`w-full p-3 text-left flex items-center justify-between rounded-xl border transition-colors ${hygEvents.length > 0 ? 'bg-teal-50 border-teal-500 text-teal-700' : 'bg-white border-slate-200 text-slate-700 hover:border-[#0bbfaf]/50'}`}
+                className={`pe-btn-hygiene ${hygEvents.length > 0 ? 'done' : ''}`}
               >
-                <span className="font-semibold text-sm flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${hygEvents.length > 0 ? 'bg-teal-500' : 'bg-slate-300'}`}></span>
+                <span className="pe-hyg-indicator">
+                  <span className="pe-hyg-dot"></span>
                   손소독
                 </span>
-                <span className="text-xs text-slate-400 font-mono">{hygEvents.length > 0 ? '수행완료' : '직접 시점 판단'}</span>
+                <span className="pe-hyg-meta">{hygEvents.length > 0 ? '수행완료' : '직접 시점 판단'}</span>
               </button>
-              <p className="text-xs text-slate-400 mt-2">필요하다고 판단하는 시점에 직접 누르세요.</p>
+              <p className="pe-note-text">필요하다고 판단하는 시점에 직접 누르세요.</p>
             </div>
 
             <div>
-              <h3 className="text-xs font-bold text-slate-400 tracking-wider mb-3">기물 트레이</h3>
-              <div className="grid grid-cols-2 gap-2">
+              <h3 className="pe-section-title">기물 트레이</h3>
+              <div className="pe-grid-2">
                 {EQUIP.map(e => (
                   <button
                     key={e.id}
                     onClick={() => handleEquip(e.id)}
-                    className={`p-2 flex items-center justify-center gap-2 rounded-lg border transition-all ${inHand === e.id ? 'bg-slate-800 border-slate-800 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'}`}
+                    className={`pe-btn-equip ${inHand === e.id ? 'active' : ''}`}
                   >
                     <span>{e.ic}</span>
-                    <span className="text-xs font-semibold">{e.nm}</span>
+                    <span className="pe-btn-equip-nm">{e.nm}</span>
                   </button>
                 ))}
               </div>
@@ -292,24 +292,24 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
           </div>
 
           {/* CENTER: EXAM ITEMS */}
-          <div className="flex-1 bg-white p-5 overflow-y-auto">
+          <div className="pe-panel-center">
             <button 
               onClick={handleIntro}
-              className={`w-full p-4 flex items-center gap-4 rounded-xl border-2 border-dashed text-left mb-6 transition-colors ${introDone ? 'border-[#0bbfaf] bg-[#0bbfaf]/5' : 'border-slate-300 hover:border-[#0bbfaf]/50 bg-slate-50'}`}
+              className={`pe-btn-intro ${introDone ? 'done' : ''}`}
             >
-              <div className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold text-sm ${introDone ? 'bg-[#0bbfaf] text-white' : 'bg-slate-200 text-slate-500'}`}>A</div>
+              <div className="pe-intro-icon">A</div>
               <div>
-                <div className="font-bold text-slate-800">신체진찰 진입 선언 · 개방형 확인</div>
-                <div className="text-xs text-slate-500 mt-1">"지금부터 신체 진찰을 하겠습니다" + 이름·나이 확인</div>
+                <div className="pe-intro-title">신체진찰 진입 선언 · 개방형 확인</div>
+                <div className="pe-intro-desc">"지금부터 신체 진찰을 하겠습니다" + 이름·나이 확인</div>
               </div>
             </button>
 
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="pe-cat-tabs">
               {CATS.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => { setActiveCat(cat.id); setQuad(null); }}
-                  className={`px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${activeCat === cat.id ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}
+                  className={`pe-tab-btn ${activeCat === cat.id ? 'active' : ''}`}
                 >
                   {cat.nm}
                 </button>
@@ -317,14 +317,14 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
             </div>
 
             {activeCat === 'abd' && (
-              <div className="bg-slate-50 border rounded-xl p-4 mb-4 flex items-center justify-between">
-                <span className="text-sm font-bold text-slate-700">복부 4분면 선택 <span className="font-mono text-[#0bbfaf] text-xs ml-2">{quad || '미선택'}</span></span>
-                <div className="grid grid-cols-2 gap-2 w-48">
+              <div className="pe-quad-selector">
+                <span className="pe-quad-title">복부 4분면 선택 <span className="pe-quad-val">{quad || '미선택'}</span></span>
+                <div className="pe-quad-grid">
                   {QUADS.flat().map(q => (
                     <button 
                       key={q} 
                       onClick={() => setQuad(q)}
-                      className={`py-2 text-xs font-mono font-bold rounded-md border transition-colors ${quad === q ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'}`}
+                      className={`pe-quad-btn ${quad === q ? 'active' : ''}`}
                     >
                       {q}
                     </button>
@@ -333,7 +333,7 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="pe-items-list">
               {ITEMS.filter(i => i.cat === activeCat).map(it => {
                 const done = !!performed[it.id];
                 const m = MOD[it.mod];
@@ -341,23 +341,23 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
                   <button 
                     key={it.id}
                     onClick={() => performItem(it.id)}
-                    className={`w-full flex items-center p-3 rounded-xl border text-left transition-all ${done ? 'bg-[#0bbfaf]/5 border-[#0bbfaf]/40' : 'bg-white border-slate-200 hover:border-[#0bbfaf]/60 shadow-sm'}`}
+                    className={`pe-item-btn ${done ? 'done' : ''}`}
                   >
-                    <div className="w-10 h-10 flex items-center justify-center rounded-lg text-white font-bold text-sm mr-4" style={{ backgroundColor: m.c }}>
+                    <div className="pe-item-icon" style={{ backgroundColor: m.c }}>
                       {it.mod.substring(0,1)}
                     </div>
-                    <div className="flex-1">
-                      <div className={`font-bold ${done ? 'text-[#0bbfaf]' : 'text-slate-800'}`}>
-                        {it.nm} {it.over && <span className="text-[10px] text-red-500 bg-red-50 px-2 py-0.5 rounded ml-2">과잉주의</span>}
+                    <div className="pe-item-content">
+                      <div className="pe-item-name">
+                        {it.nm} {it.over && <span className="pe-over-tag">과잉주의</span>}
                       </div>
-                      <div className="text-xs text-slate-500 mt-1 flex gap-3">
+                      <div className="pe-item-meta">
                         <span style={{ color: m.c }}>{m.lab}</span>
                         {it.equip && <span>🔧 {equipNm(it.equip)}</span>}
                         {it.posture && <span>🧍 {postureKo(it.posture)}</span>}
                         {it.needsQuad && <span>📍 분면 특정</span>}
                       </div>
                     </div>
-                    {done && <CheckCircle className="text-[#0bbfaf]" size={20} />}
+                    {done && <CheckCircle className="pe-item-check" size={20} />}
                   </button>
                 );
               })}
@@ -365,27 +365,27 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
           </div>
 
           {/* RIGHT: LOGS */}
-          <div className="w-80 bg-slate-900 border-l p-5 flex flex-col text-slate-200 overflow-hidden">
-            <h3 className="text-xs font-bold text-slate-500 tracking-wider mb-4">수행 타임라인</h3>
-            <div className="flex-1 overflow-y-auto pr-2 space-y-4" ref={timelineRef}>
+          <div className="pe-panel-right">
+            <h3 className="pe-section-title">수행 타임라인</h3>
+            <div className="pe-timeline-container" ref={timelineRef}>
               {timeline.length === 0 ? (
-                <div className="text-sm text-slate-500">진찰 항목을 선택하면 여기에 기록됩니다.</div>
+                <div className="pe-empty-text">진찰 항목을 선택하면 여기에 기록됩니다.</div>
               ) : (
                 timeline.map((ev, i) => (
-                  <div key={i} className="flex gap-3 relative">
-                    <div className="w-3 h-3 rounded-full mt-1.5 flex-shrink-0 z-10" style={{ backgroundColor: ev.mod ? (MOD[ev.mod]?.c || '#64748b') : '#64748b' }}></div>
-                    <div className="absolute left-[5px] top-4 bottom-[-16px] w-[2px] bg-slate-700"></div>
-                    <div className="flex-1 pb-4">
-                      <div className="font-semibold text-sm text-slate-100">{ev.label}</div>
-                      {ev.sub && <div className="text-[10px] font-mono text-slate-400 mt-0.5">{ev.sub}</div>}
+                  <div key={i} className="pe-tl-item">
+                    <div className="pe-tl-dot" style={{ backgroundColor: ev.mod ? (MOD[ev.mod]?.c || '#64748b') : '#64748b' }}></div>
+                    <div className="pe-tl-line"></div>
+                    <div className="pe-tl-content">
+                      <div className="pe-tl-label">{ev.label}</div>
+                      {ev.sub && <div className="pe-tl-sub">{ev.sub}</div>}
                       {ev.find && (
-                        <div className="mt-2 text-xs bg-[#0bbfaf]/10 border-l-2 border-[#0bbfaf] p-2 rounded-r-md text-[#0bbfaf] font-medium">
+                        <div className="pe-tl-find">
                           {ev.find}
                         </div>
                       )}
                       {ev.gates && ev.gates.length > 0 && (
-                        <div className="mt-1 flex gap-1">
-                          {ev.gates.map((g, j) => <span key={j} className="text-[9px] bg-red-900/40 text-red-300 px-1.5 py-0.5 rounded">{g}</span>)}
+                        <div className="pe-tl-gates">
+                          {ev.gates.map((g, j) => <span key={j} className="pe-tl-gate">{g}</span>)}
                         </div>
                       )}
                     </div>
@@ -396,7 +396,7 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
             
             <button 
               onClick={handleFinish}
-              className="mt-4 w-full py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-200 transition-colors shadow-lg"
+              className="pe-finish-btn"
             >
               진찰 종료 및 문진 복귀
             </button>
@@ -406,7 +406,7 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
 
       {/* TOAST */}
       {toastMsg && (
-        <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-bounce-short text-sm font-bold z-[60] ${toastMsg.isError ? 'bg-red-500 text-white' : 'bg-slate-800 text-white'}`}>
+        <div className={`pe-toast ${toastMsg.isError ? 'error' : 'success'}`}>
           {toastMsg.isError ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
           {toastMsg.msg}
         </div>

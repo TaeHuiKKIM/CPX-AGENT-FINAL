@@ -4,7 +4,7 @@ import { formatTime } from '../utils/time';
 import { speakWithTTS } from '../utils/speech';
 import { api } from '../api/client';
 import { supabase } from '../api/supabase';
-import PhysicalExamModal from './PhysicalExamModal';
+import PhysicalExamModal from '../components/practice/PhysicalExamModal';
 
 const FASTAPI_WS_URL = import.meta.env.VITE_FASTAPI_WS_URL || 'ws://localhost:8000/api/v1';
 
@@ -322,23 +322,36 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           <strong id="session-timer-text" style={{ color: timer < 60 ? 'var(--accent-red)' : '#1e293b' }}>
             {formatTime(timer)}
           </strong>
-          <button type="button" id="btn-session-start" disabled={Boolean(session)} onClick={startSession}>
+          <button type="button" id="btn-session-start" disabled={Boolean(session)} onClick={startSession} style={{ whiteSpace: 'nowrap' }}>
             연습 시작
           </button>
-          <button type="button" disabled={!session} onClick={() => setIsPEOpen(true)} className="flex items-center gap-1 text-[#0bbfaf] bg-[#0bbfaf]/10 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-[#0bbfaf]/20 transition-colors ml-auto mr-2 border border-[#0bbfaf]/20">
+          <button 
+            type="button" 
+            disabled={!session} 
+            onClick={() => setIsPEOpen(true)} 
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '4px', 
+              color: '#0bbfaf', backgroundColor: 'rgba(11, 191, 175, 0.1)', 
+              padding: '8px 12px', borderRadius: '8px', fontWeight: 'bold', 
+              fontSize: '14px', marginLeft: 'auto', marginRight: '8px', 
+              border: '1px solid rgba(11, 191, 175, 0.2)', whiteSpace: 'nowrap',
+              cursor: !session ? 'not-allowed' : 'pointer', opacity: !session ? 0.5 : 1
+            }}
+          >
             🩺 신체진찰
           </button>
-          <button type="button" id="btn-session-stop" disabled={!session} onClick={stopSession}>
+          <button type="button" id="btn-session-stop" disabled={!session} onClick={stopSession} style={{ whiteSpace: 'nowrap' }}>
             <Square size={14} /> 종료
           </button>
           <button
             type="button"
-            id="btn-session-reset"
+            title="초기화"
             onClick={() => {
               if (window.confirm('연습 기록이 저장되지 않고 초기화됩니다. 다시 시작하시겠습니까?')) resetRoom();
             }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', minWidth: '36px' }}
           >
-            <RotateCcw size={14} /> 초기화
+            <RotateCcw size={16} />
           </button>
         </div>
 
