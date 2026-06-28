@@ -184,7 +184,9 @@ function DetailedReport({ hist, scenarios }) {
 
         {!hist.explainable_feedback && (
           <p id="rep-coaching-tip" className="coaching-tip">
-            {missed.length > 0 ? `다음 유도 질문 예시: "${missed[0].keyword[0]}에 대해 알려주시겠습니까?"` : '현재 완벽한 상태입니다. 실전 CPX에서도 동일한 루틴으로 임해주시기 바랍니다.'}
+            {missed.length > 0
+              ? `다음 유도 질문 예시: "${missed[0]?.keyword?.[0] ?? missed[0]?.item ?? '관련 증상'}에 대해 알려주시겠습니까?"`
+              : '현재 완벽한 상태입니다. 실전 CPX에서도 동일한 루틴으로 임해주시기 바랍니다.'}
           </p>
         )}
       </div>

@@ -183,9 +183,9 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           date: new Date().toLocaleString('ko-KR'),
           duration: formatTime(600 - timer),
           ratio: '50:50',
-          satisfaction: evalResult.score_communication || 80,
-          ppi: (evalResult.total_score || 0) >= 90 ? '매우 우수(S)' : (evalResult.total_score || 0) >= 80 ? '우수(A)' : '보통(B)',
-          score: evalResult.total_score || 85,
+          satisfaction: evalResult.score_communication ?? 0,
+          ppi: (evalResult.total_score ?? 0) >= 90 ? '매우 우수(S)' : (evalResult.total_score ?? 0) >= 80 ? '우수(A)' : (evalResult.total_score ?? 0) >= 60 ? '보통(B)' : '미흡(C)',
+          score: evalResult.total_score ?? 0,
           transcript: messagesRef.current.length > 0 ? messagesRef.current : [{ speaker: 'patient', text: '대화 기록이 없습니다.' }],
           // HistoryPage에서 강점, 약점, 피드백을 보여주기 위해 결과 병합
           ...evalResult,
