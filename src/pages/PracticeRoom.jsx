@@ -135,10 +135,23 @@ export default function PracticeRoom({ scenario, onFinish }) {
     }
 
     if (session.session_id.startsWith('test-session')) {
-      // 로컬 가짜 세션은 DB 저장 및 채점을 생략
-      alert("로그인 없이 진행한 테스트 세션이 종료되었습니다. (DB 저장 및 채점 생략)");
+      // 로컬 가짜 세션은 DB 저장 없이 프론트엔드에서 모의 채점 결과를 생성
+      const mockRecord = {
+        id: `mock-history-${Date.now()}`,
+        scenarioId: scenario.id,
+        date: new Date().toLocaleString('ko-KR'),
+        duration: formatTime(600 - timer),
+        ratio: '50:50',
+        satisfaction: 90,
+        ppi: '우수(A)',
+        score: 85,
+        checkedRubrics: ['r1', 'r2', 'r3'],
+        transcript: messagesRef.current.length > 0 ? messagesRef.current : [{ speaker: 'patient', text: '대화 기록이 없습니다.' }]
+      };
+      
+      alert("로그인 없이 진행한 테스트 세션이 종료되었습니다. (DB 저장 없이 모의 채점 결과를 제공합니다)");
       resetRoom();
-      onFinish({}, 0);
+      onFinish(mockRecord, 85);
       return;
     }
 
