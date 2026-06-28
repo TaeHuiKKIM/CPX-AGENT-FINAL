@@ -22,37 +22,17 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
   const wsRef = useRef(null); // WebSocket reference
   const messagesRef = useRef(messages);
   const timerRef = useRef(timer);
-  const silenceTimerRef = useRef(null);
-
-  const resetSilenceTimer = useCallback(() => {
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-    }
-    if (!session || !wsRef.current) return;
-    
-    silenceTimerRef.current = setTimeout(() => {
-      // 10초간 입력이 없으면 백엔드로 silence 이벤트 전송
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ event: "silence" }));
-      }
-    }, 10000); // 10 seconds
-  }, [session]);
 
   useEffect(() => {
     messagesRef.current = messages;
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight });
-    resetSilenceTimer();
-  }, [messages, resetSilenceTimer]);
+  }, [messages]);
 
   useEffect(() => {
     timerRef.current = timer;
   }, [timer]);
 
   const resetRoom = useCallback(() => {
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
     window.speechSynthesis?.cancel();
     recognitionRef.current?.stop?.();
     if (wsRef.current) {
@@ -112,12 +92,12 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     const ws = new WebSocket(`${FASTAPI_WS_URL}/sessions/${newSession.session_id}/stream?mode=${practiceMode}`);
     ws.onopen = () => {
       console.log("WebSocket connected with mode:", practiceMode);
-      if (practiceMode === 'ACTIVE' || practiceMode === 'LEARNING') {
+      if (practiceMode === 'ACTIVE') {
         const initialMessage = scenario.cc || scenario.patient_info?.initial_complaint || '선생님, 어디가 아파서 왔습니다.';
         appendMessage('patient', initialMessage);
         speakWithTTS(initialMessage);
       } else {
-        // EXAM 모드에서는 의사가 먼저 질문하기를 기다림
+        // PRACTICE 모드에서는 의사가 먼저 질문하기를 기다림
         setEmotionDesc('환자가 의사 선생님의 첫 질문을 기다리고 있습니다.');
       }
     };
