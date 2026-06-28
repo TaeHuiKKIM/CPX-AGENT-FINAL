@@ -13,6 +13,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isPEOpen, setIsPEOpen] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
   const [peLog, setPeLog] = useState(null);
   const [timer, setTimer] = useState(600);
   const [emotion, setEmotion] = useState({ anxiety: 70, cooperation: 40, satisfaction: 50 });
@@ -49,6 +50,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     setEmotion({ anxiety: 70, cooperation: 40, satisfaction: 50 });
     setEmotionDesc('연습을 시작하면 환자의 정서 상태가 반영됩니다.');
     setIsListening(false);
+    setIsEvaluating(false);
   }, []);
 
   useEffect(() => {
@@ -156,9 +158,9 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
       wsRef.current.close();
     }
 
+    setIsEvaluating(true);
+
     if (session.session_id.startsWith('test-session')) {
-      alert("테스트 세션이 종료되었습니다. AI 교수님의 채점을 시작합니다. (약 10~15초 소요)");
-      
       try {
         const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
         const res = await fetch(`${apiUrl}/v1/feedback/evaluate_anonymous`, {
@@ -194,7 +196,6 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
         onFinish(aiRecord, aiRecord.score);
       } catch (err) {
         console.error("AI Evaluation failed:", err);
-        alert("채점 중 오류가 발생했습니다.");
         resetRoom();
         onFinish({ id: 'error-history', scenarioId: scenario.id, score: 0 }, 0);
       }
@@ -217,10 +218,8 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           pe_log: peLog
         })
       });
-      alert("실습이 종료되었습니다. AI 채점이 진행 중입니다. (대시보드에서 결과를 확인하세요)");
     } catch (err) {
       console.error(err);
-      alert("평가 요청 중 오류가 발생했습니다.");
     }
 
     resetRoom();
@@ -431,6 +430,26 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
         scenario={scenario} 
         onComplete={handlePEComplete}
       />
+
+      {/* Evaluation Loading Overlay */}
+      {isEvaluating && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(8px)'
+        }}>
+          <div style={{
+            width: '50px', height: '50px', border: '5px solid #e2e8f0',
+            borderTopColor: '#0bbfaf', borderRadius: '50%', animation: 'spin 1s linear infinite',
+            marginBottom: '20px'
+          }} />
+          <h2 style={{ color: '#1e293b', fontSize: '24px', fontWeight: 'bold', marginBottom: '10px' }}>
+            AI 교수님이 꼼꼼하게 채점 중입니다...
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '16px' }}>대화 내용과 신체진찰 기록을 종합하여 분석하고 있습니다. (약 10~15초 소요)</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
     </div>
   );
 }

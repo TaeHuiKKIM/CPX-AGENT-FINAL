@@ -86,6 +86,8 @@ export default function App() {
     navigateTo('practice');
   };
 
+  const [resultPopup, setResultPopup] = useState(null);
+
   const finishPractice = (record, score) => {
     if (!record || Object.keys(record).length === 0) {
       navigateTo('dashboard');
@@ -105,7 +107,7 @@ export default function App() {
     );
     setSelectedHistoryId(record.id);
     navigateTo('history');
-    alert(`연습 세션이 종료되었습니다! 총점: ${score}점. 성과 분석 리포트로 이동합니다.`);
+    setResultPopup({ record, score });
   };
 
   if (authLoading) {
