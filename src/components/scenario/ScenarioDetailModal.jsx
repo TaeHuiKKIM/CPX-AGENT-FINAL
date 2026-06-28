@@ -2,7 +2,7 @@ import { X } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ScenarioDetailModal({ scenario, onClose, onStart }) {
-  const [mode, setMode] = useState('EXAM');
+  const [mode, setMode] = useState('PRACTICE');
   const maxVal = Math.max(...scenario.distribution);
 
   return (
@@ -69,9 +69,8 @@ export default function ScenarioDetailModal({ scenario, onClose, onStart }) {
               onChange={(e) => setMode(e.target.value)}
               style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
             >
-              <option value="LEARNING">학습 모드 (AI 튜터 개입)</option>
+              <option value="PRACTICE">실습 모드 (모의고사 + AI튜터 피드백)</option>
               <option value="ACTIVE">능동 모드 (환자 먼저 발화)</option>
-              <option value="EXAM">모의고사 모드 (실전과 동일)</option>
             </select>
           </div>
           <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
