@@ -39,9 +39,9 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
     # 3. Format Conversation History
     contents = []
     for msg in conversation_history:
-        role = "model" if msg["speaker"] == "patient" else "user"
+        role = "model" if msg["role"] == "assistant" else "user"
         contents.append(
-            {"role": role, "parts": [{"text": msg["text"]}]}
+            {"role": role, "parts": [{"text": msg["content"]}]}
         )
     
     # If no history, wait, history includes the current question from the doctor.
@@ -57,7 +57,7 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
     }
     
     try:
-        response = client.models.generate_content(
+        response = await client.aio.models.generate_content(
             model=settings.GEMINI_MODEL,
             contents=contents,
             config={
