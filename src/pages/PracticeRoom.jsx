@@ -60,10 +60,17 @@ export default function PracticeRoom({ scenario, onFinish }) {
 
   const startSession = async () => {
     // 1. Create a DB Session Record in Supabase
-    const { data: { user } } = await supabase.auth.getUser();
+    let { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      alert("로그인이 필요합니다.");
-      return;
+      // 로그인 없이 테스트하기 위한 자동 임시 계정 생성
+      const tempEmail = `guest_${Date.now()}@medirole.kr`;
+      const { data: signUpData } = await supabase.auth.signUp({ email: tempEmail, password: 'guestpassword123' });
+      user = signUpData?.user;
+      
+      if (!user) {
+        alert("임시 계정 생성에 실패했습니다. 관리자에게 문의하세요.");
+        return;
+      }
     }
 
     const { data: newSession, error } = await supabase.from('sessions').insert({
