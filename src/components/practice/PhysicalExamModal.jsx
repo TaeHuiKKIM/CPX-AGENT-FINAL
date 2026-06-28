@@ -72,6 +72,79 @@ const ITEMS = [
 const QUADS = [['RUQ', 'LUQ'], ['RLQ', 'LLQ']];
 const CONTACT = ['청', '타', '촉', '수기'];
 
+const SCENARIO_FINDINGS = {
+  'scen-fever-1': {
+    v_appear: '창백하고 피로해 보이며 팔·다리에 작은 멍이 관찰됨',
+    h_conj: '결막 창백 관찰, 공막 황달 없음',
+    c_cvat: '양측 늑척추각 압통 없음 (음성)',
+    a_palp: (q) => q ? `${q} 뚜렷한 국소 압통 없음, 반발통 없음` : '복부 전반 압통 없음, 간·비장 크기 확인 필요',
+    a_liver: '간연이 약간 촉지되어 간비대 가능성 있음',
+    a_murphy: 'Murphy 징후 음성 (-)',
+    a_spleen: '좌상복부에서 비장 하연이 촉지되어 비장비대 의심',
+  },
+  'scen-fever-2': {
+    v_vital: 'BP 128/80 · HR 78회/분 · RR 18회/분 · BT 39.1°C — 고열 대비 상대적 서맥',
+    v_appear: '발열은 있으나 전신 상태는 비교적 양호해 보임',
+    v_pulse: '요골맥 78회/분, 규칙적 — 고열에 비해 낮은 상대적 서맥',
+    c_cvat: '양측 늑척추각 압통 없음 (음성) — 신우신염 가능성 낮음',
+    a_palp: (q) => q ? `${q} 압통 없음, 반발통 없음` : '복부 압통 없음, 반발통 없음',
+    a_liver: '간연 뚜렷이 촉지되지 않음, 압통 없음',
+    a_murphy: 'Murphy 징후 음성 (-)',
+  },
+  'scen-fever-3': {
+    v_appear: '피로해 보이며 안면 발진과 관절 통증을 호소함',
+    c_cvat: '양측 늑척추각 압통 없음 (음성)',
+    a_palp: (q) => q ? `${q} 압통 없음, 반발통 없음` : '복부 압통 없음',
+    a_liver: '간연 뚜렷이 촉지되지 않음, 압통 없음',
+    a_murphy: 'Murphy 징후 음성 (-)',
+    l_edema: '양 하지 함요 부종 없음',
+  },
+  'scen-fever-4': {
+    v_appear: '콧물과 인후통을 호소하나 호흡곤란은 없어 보임',
+    c_lung: '양폐 정상 호흡음, 수포음·천명음 없음',
+    c_cvat: '양측 늑척추각 압통 없음 (음성)',
+    a_palp: (q) => q ? `${q} 압통 없음, 반발통 없음` : '복부 압통 없음',
+    a_liver: '간연 뚜렷이 촉지되지 않음, 압통 없음',
+    a_murphy: 'Murphy 징후 음성 (-)',
+  },
+  'scen-fever-5': {
+    v_appear: '고열과 오한으로 아파 보이며 오른쪽 옆구리 통증을 호소함',
+    c_cvat: '우측 늑골척추각(CVA) 타진 압통 양성(+), 좌측 음성 — 급성 신우신염을 시사',
+    a_palp: (q) => q ? `${q} 뚜렷한 복막자극 징후 없음; 우측 측복부 통증은 CVA 타진에서 더 뚜렷함` : '복부 반발통·근육강직 없음, 우측 CVA 압통 확인 필요',
+    a_liver: '간연 뚜렷이 촉지되지 않음, 압통 없음',
+    a_murphy: 'Murphy 징후 음성 (-)',
+    a_spleen: '비장 촉지되지 않음',
+  },
+  'scen-fever-6': {
+    v_appear: '만성 피로와 체중 감소가 동반된 아급성 병색',
+    c_heart: '규칙적 S1/S2, 새로 들리는 수축기 심잡음 청진됨',
+    c_lung: '양폐 정상 호흡음, 수포음·천명음 없음',
+    c_cvat: '양측 늑척추각 압통 없음 (음성)',
+    a_palp: (q) => q === 'LUQ' ? '좌상복부(LUQ) 경한 압통, 반발통 없음 — 비장 병변 감별 필요' : q ? `${q} 압통 없음, 반발통 없음` : '좌상복부 불편감 여부 확인 필요',
+    a_liver: '간연 뚜렷이 촉지되지 않음',
+    a_murphy: 'Murphy 징후 음성 (-)',
+    a_spleen: '비장 하연 촉지 가능, 좌상복부 불편감 동반',
+  },
+  'scen-fever-7': {
+    v_appear: '오른쪽 정강이 통증으로 보행 시 불편해 보임',
+    c_cvat: '양측 늑척추각 압통 없음 (음성)',
+    a_palp: (q) => q ? `${q} 압통 없음, 반발통 없음` : '복부 압통 없음',
+    a_liver: '간연 뚜렷이 촉지되지 않음, 압통 없음',
+    a_murphy: 'Murphy 징후 음성 (-)',
+    l_pulse: '사지 말초맥박 양호, 좌우 대칭',
+    l_edema: '오른쪽 정강이에 발적·열감·부종·압통이 있고 경계는 비교적 불명확함',
+  },
+  'scen-fever-8': {
+    v_appear: '오한 후 고열이 반복되는 병색, 발열 사이에는 비교적 안정적임',
+    h_conj: '경한 결막 창백 관찰, 공막 황달 없음',
+    c_cvat: '양측 늑척추각 압통 없음 (음성)',
+    a_palp: (q) => q === 'LUQ' ? '좌상복부(LUQ) 경한 불편감, 반발통 없음 — 비장비대와 연관 가능' : q ? `${q} 압통 없음, 반발통 없음` : '복부 전반 반발통 없음, 좌상복부/비장 확인 필요',
+    a_liver: '간연이 약간 촉지될 수 있으나 뚜렷한 압통 없음',
+    a_murphy: 'Murphy 징후 음성 (-)',
+    a_spleen: '좌상복부에서 비장 하연 촉지 — 비장비대 의심',
+  },
+};
+
 function postureKo(id) { return (POSTURES.find(p => p.id === id) || {}).ko || id; }
 function equipNm(id) { return (EQUIP.find(e => e.id === id) || {}).nm || id; }
 
@@ -153,10 +226,19 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
     addTimeline({ kind: 'intro', label: '진입 선언 · 개방형 확인', sub: 'COMMUNICATION' });
   };
 
-  const palpFinding = (q) => {
+  const defaultPalpFinding = (q) => {
     if (q === 'RUQ') return '우상복부(RUQ) 국소 압통 (+), 반발통 (−), 근육 강직 (−)';
     if (q) return `${q} 압통 없음 — 우상복부(RUQ) 별도 확인 필요`;
     return '분면을 특정하지 않아 국소 소견 확인 어려움';
+  };
+
+  const resolveFinding = (it, q) => {
+    const scenarioFindings = SCENARIO_FINDINGS[scenario?.id] || {};
+    const scenarioFinding = scenarioFindings[it.id];
+    if (typeof scenarioFinding === 'function') return scenarioFinding(q);
+    if (scenarioFinding) return scenarioFinding;
+    if (it.id === 'a_palp') return defaultPalpFinding(q);
+    return it.find;
   };
 
   const addTimeline = (ev) => {
@@ -213,7 +295,7 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
     const cost = it.coop ? 10 : 5;
     deductTime(cost);
     
-    const find = it.id === 'a_palp' ? palpFinding(quad) : it.find;
+    const find = resolveFinding(it, quad);
     if (find) {
       setFindings(prev => {
         // 중복 방지
