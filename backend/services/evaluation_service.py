@@ -7,6 +7,49 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
+FEVER_CHECKLIST_ITEMS = [
+    {"id": 1, "domain": "병력 청취-주제 관련", "criterion": "발열이 시작된 시기와 지속 기간을 질문하였다."},
+    {"id": 2, "domain": "병력 청취-주제 관련", "criterion": "발열의 양상, 직접 측정 여부, 측정 체온, 변화 양상, 간헐적/지속적 발열 시간대를 질문하였다."},
+    {"id": 3, "domain": "병력 청취-주제 관련", "criterion": "주변에 비슷한 증상을 호소하는 사람이 있는지 확인하였다."},
+    {"id": 4, "domain": "병력 청취-주제 관련", "criterion": "전신 증상인 오한, 체중 변화, 근육통, 식은땀을 질문하였다."},
+    {"id": 5, "domain": "병력 청취-주제 관련", "criterion": "호흡기, 소화기, 비뇨기, 중추신경계, 피부 발진, 관절통 등 동반 증상을 질문하였다."},
+    {"id": 6, "domain": "병력 청취-주제 관련", "criterion": "상부 호흡기 증상과 하부 호흡기 증상을 나누어 질문하였다."},
+    {"id": 7, "domain": "병력 청취-주제 관련", "criterion": "탈수 증상인 목마름과 어지러움을 질문하였다."},
+    {"id": 8, "domain": "병력 청취-주제 관련", "criterion": "발열 원인 질환의 중증도와 관련된 위험 요인을 확인하였다."},
+    {"id": 9, "domain": "병력 청취-주제 관련", "criterion": "최근 여행력, 접촉력, 음식 복용을 질문하였다."},
+    {"id": 10, "domain": "병력 청취-주제 관련", "criterion": "최근 야외 활동 또는 벌레 물림 여부를 질문하였다."},
+    {"id": 11, "domain": "병력 청취-기본", "criterion": "과거력, 자가면역 질환, 악성 종양 등을 질문하였다."},
+    {"id": 12, "domain": "병력 청취-기본", "criterion": "복용 약물, 해열제 사용 여부와 반응을 질문하였다."},
+    {"id": 13, "domain": "병력 청취-기본", "criterion": "음주력과 흡연력을 질문하였다."},
+    {"id": 14, "domain": "병력 청취-기본", "criterion": "가족력과 직업력을 질문하였다."},
+    {"id": 15, "domain": "병력 청취-기본", "criterion": "현재 거주지와 근무 환경을 확인하였다."},
+    {"id": 16, "domain": "신체 진찰", "criterion": "체온을 포함한 활력징후를 확인하였다."},
+    {"id": 17, "domain": "신체 진찰", "criterion": "결막 및 공막의 이상을 관찰하였다."},
+    {"id": 18, "domain": "신체 진찰", "criterion": "구강 탈수와 인후부 진찰을 시행하였다."},
+    {"id": 19, "domain": "신체 진찰", "criterion": "경부 림프절을 촉진하였다."},
+    {"id": 20, "domain": "신체 진찰", "criterion": "흉부를 시진-촉진-타진-청진 순서로 진찰하였다."},
+    {"id": 21, "domain": "신체 진찰", "criterion": "복부를 시진-청진-타진-촉진 순서로 진찰하였다."},
+    {"id": 22, "domain": "신체 진찰", "criterion": "전신 피부 소견과 탈수 소견을 확인하였다."},
+    {"id": 23, "domain": "신체 진찰", "criterion": "관절염 의심 시 압통, 부종, 열감, 발적을 확인하였다."},
+    {"id": 24, "domain": "신체 진찰", "criterion": "늑골척추각 압통을 확인하였다."},
+    {"id": 25, "domain": "신체 진찰", "criterion": "수막 자극 징후를 확인하였다."},
+    {"id": 26, "domain": "신체 진찰-공통", "criterion": "신체 진찰 전 물 또는 소독용 알코올로 손위생을 시행하였다."},
+    {"id": 27, "domain": "신체 진찰-공통", "criterion": "신체 진찰 시 필요한 만큼만 옷이나 가운을 노출하였다."},
+    {"id": 28, "domain": "신체 진찰-공통", "criterion": "시행할 신체 검진을 미리 설명하거나 진찰 결과를 설명하였다."},
+    {"id": 29, "domain": "신체 진찰-공통", "criterion": "신체 진찰 과정에서 불편이 있었는지 점검하였다."},
+    {"id": 30, "domain": "임상 술기", "criterion": "혈액배양을 위한 채혈에 대해 설명하고 시행하였다."},
+    {"id": 31, "domain": "환자 교육", "criterion": "추정 진단에 대해 설명하였다."},
+    {"id": 32, "domain": "환자 교육", "criterion": "법정 감염병의 종류를 알고 보고 가능함을 설명하였다."},
+    {"id": 33, "domain": "환자 교육", "criterion": "향후 진단 계획을 설명하였다."},
+    {"id": 34, "domain": "환자 교육", "criterion": "향후 치료 계획을 설명하였다."},
+    {"id": 35, "domain": "환자 교육", "criterion": "응급 상황 및 감염병 예방을 교육하였다."},
+    {"id": 36, "domain": "PPI", "criterion": "쉬운 용어, 개방형 질문, 1회 이상 요약을 사용하였다."},
+    {"id": 37, "domain": "PPI", "criterion": "말을 끊지 않고 적절한 호응과 경청을 보였다."},
+    {"id": 38, "domain": "PPI", "criterion": "눈맞춤, 거리, 자세, 목소리 크기와 속도가 적절하였다."},
+    {"id": 39, "domain": "PPI", "criterion": "단정한 용모, 적절한 자기소개, 과도한 희망/경고를 피하는 신뢰감을 보였다."},
+    {"id": 40, "domain": "PPI", "criterion": "적절한 공감 표현을 하고 사무적·반말조 태도를 피하였다."},
+]
+
 async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: dict, pe_log: dict = None) -> dict:
     """
     Core function to evaluate a transcript against a rubric using Gemini 2.5 Flash.
@@ -19,45 +62,89 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
     for msg in transcripts:
         # Support both {"speaker": "doctor", "text": "..."} and {"role": "user", "content": "..."}
         speaker = msg.get("speaker", msg.get("role", "unknown"))
-        speaker_role = "의사(학생)" if speaker in ["doctor", "user"] else "환자(AI)"
+        if speaker in ["doctor", "user"]:
+            speaker_role = "의사(학생)"
+        elif speaker == "system":
+            speaker_role = "시스템(신체진찰 기록)"
+        else:
+            speaker_role = "환자(AI)"
         content = msg.get("text", msg.get("content", ""))
         conversation_text += f"{speaker_role}: {content}\n"
         
     rubric_text = json.dumps(rubric_data, ensure_ascii=False) if rubric_data else "루브릭 정보 없음"
+    checklist_text = json.dumps(FEVER_CHECKLIST_ITEMS, ensure_ascii=False)
+    pe_log_text = json.dumps(pe_log, ensure_ascii=False) if pe_log else "신체진찰 로그 없음"
     
     system_instruction = f"""
     당신은 의과대학 실기시험(CPX)의 전문 평가 교수입니다.
-    학생(의사)과 표준환자(AI) 간의 대화 기록(Transcript)을 바탕으로 학생의 진료 역량을 평가하십시오.
+    학생(의사)과 표준환자(AI) 간의 대화 기록(Transcript) 및 신체진찰 로그를 바탕으로 학생의 진료 역량을 평가하십시오.
     
-    평가는 다음 글로벌 표준지표(PMR) 및 루브릭을 기준으로 합니다:
-    1. 병력 기술 (History Taking): 증상(Onset, Location, Duration, Character, Aggravating, Relieving, Severity) 및 동반증상 탐색.
-    2. 환자 안심 및 이해 (Communication): 환자의 통증과 불안에 대한 적절한 공감.
-    3. 환자 정보 (Patient Info): 과거력, 가족력, 사회력 수집 완성도.
-    4. 감별 진단 (DDx) & 진단 계획.
-    5. 환자 교육 (Patient Education): 일반인 수준의 설명.
+    채점은 반드시 발열 CPX 공통 체크리스트 40개 항목으로만 진행합니다.
+    - 각 항목은 Yes 또는 No만 가능합니다.
+    - 부분점수와 항목별 가중치는 없습니다.
+    - 최종 점수는 (Yes 개수 / 40) * 100 입니다.
+    - 학생이 직접 질문/진찰/설명/교육한 경우에만 Yes입니다.
+    - 환자가 먼저 말한 정보는 학생이 능동적으로 확인하지 않았다면 No입니다.
+    - 시나리오별 루브릭은 참고 맥락일 뿐이며 총점 산식에 반영하지 않습니다.
     
     [시나리오 ID]
     {scenario_id}
     
-    [평가 루브릭 (참고용 JSON)]
+    [공통 발열 Yes/No 체크리스트 40항목]
+    {checklist_text}
+
+    [시나리오별 참고 정보]
     {rubric_text}
     """
     
     prompt = f"""
     아래 대화 기록을 분석하여 지정된 JSON 스키마에 맞춰 평가 결과를 반환하십시오.
-    채점은 매우 엄격하고 객관적으로 진행해야 하며, 학생이 질문하지 않은 필수 정보는 감점 요인이 됩니다.
+    채점은 매우 엄격하고 객관적으로 진행해야 하며, 총 40개 항목을 빠짐없이 반환해야 합니다.
+    신체진찰 항목은 대화 중 시스템 메시지와 별도 신체진찰 로그를 함께 근거로 판단하십시오.
     
     [대화 기록]
     {conversation_text}
+
+    [신체진찰 로그]
+    {pe_log_text}
     """
     
     response_schema = {
         "type": "object",
         "properties": {
-            "score_history_taking": {"type": "number", "description": "병력 청취 점수 (0~100)"},
-            "score_communication": {"type": "number", "description": "의사소통 및 공감 점수 (0~100)"},
-            "score_education": {"type": "number", "description": "환자 교육 및 진단 계획 점수 (0~100)"},
-            "total_score": {"type": "number", "description": "종합 점수 (0~100, 위 세 점수의 평균 가중치 반영)"},
+            "score_total": {"type": "number", "description": "Yes 개수 / 40 * 100"},
+            "yes_count": {"type": "integer", "description": "Yes 판정 항목 수"},
+            "total_items": {"type": "integer", "description": "항상 40"},
+            "scoring_mode": {"type": "string", "description": "fever_checklist_yes_no_100_no_weight"},
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "domain": {"type": "string"},
+                        "criterion": {"type": "string"},
+                        "result": {"type": "string", "description": "Yes 또는 No"},
+                        "evidence": {"type": "string", "description": "Yes이면 학생 수행 근거, No이면 빈 문자열 또는 누락 근거"}
+                    },
+                    "required": ["id", "domain", "criterion", "result", "evidence"]
+                },
+                "description": "공통 체크리스트 40개 항목 전체"
+            },
+            "missed_items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "domain": {"type": "string"},
+                        "criterion": {"type": "string"},
+                        "why_it_matters": {"type": "string"}
+                    },
+                    "required": ["id", "domain", "criterion", "why_it_matters"]
+                },
+                "description": "No 판정 항목과 필요한 이유"
+            },
             "strengths": {
                 "type": "array",
                 "items": {"type": "string"},
@@ -94,7 +181,7 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
                 "description": "상세한 교정 피드백"
             }
         },
-        "required": ["score_history_taking", "score_communication", "score_education", "total_score", "strengths", "weaknesses", "clinical_reasoning_flow", "explainable_feedback"]
+        "required": ["score_total", "yes_count", "total_items", "scoring_mode", "items", "missed_items", "strengths", "weaknesses", "clinical_reasoning_flow", "explainable_feedback"]
     }
     
     try:
@@ -112,38 +199,97 @@ async def evaluate_transcript(transcripts: list, scenario_id: str, rubric_data: 
         response = await _call_with_retry(_call)
         
         result_json = json.loads(response.text)
-        
-        # PE 점수 병합
-        if pe_log:
-            pe_score, pe_feedback = calculate_pe_score(pe_log)
-            result_json["score_physical_exam"] = pe_score
-            result_json["physical_exam_logs"] = pe_log
-            
-            # 8개 루브릭 기반으로 총점에 20% 정도 반영하거나 별도 표시 (여기서는 점수 필드에만 추가)
-            # 기존 총점을 AI 채점 3개와 PE 채점 1개로 재계산
-            old_total = result_json.get("total_score", 0)
-            result_json["total_score"] = round((result_json.get("score_history_taking", 0) + result_json.get("score_communication", 0) + result_json.get("score_education", 0) + pe_score) / 4, 1)
-            
-            # 피드백 추가
-            if pe_feedback:
-                if "weaknesses" in result_json:
-                    result_json["weaknesses"].extend(pe_feedback)
-                else:
-                    result_json["weaknesses"] = pe_feedback
-                    
-        return result_json
+        return normalize_checklist_result(result_json, pe_log)
     except Exception as e:
         logger.error(f"Gemini Evaluation Error: {e}")
-        return {
-            "score_history_taking": 0.0,
-            "score_communication": 0.0,
-            "score_education": 0.0,
-            "total_score": 0.0,
-            "strengths": ["채점 중 오류가 발생했습니다."],
-            "weaknesses": [str(e)],
-            "clinical_reasoning_flow": [],
-            "explainable_feedback": []
-        }
+        return build_empty_checklist_result(str(e), pe_log)
+
+def normalize_checklist_result(result_json: dict, pe_log: dict = None) -> dict:
+    raw_items = result_json.get("items") or []
+    item_by_id = {}
+    for item in raw_items:
+        try:
+            item_by_id[int(item.get("id"))] = item
+        except (TypeError, ValueError):
+            continue
+
+    normalized_items = []
+    for base in FEVER_CHECKLIST_ITEMS:
+        raw = item_by_id.get(base["id"], {})
+        result = "Yes" if str(raw.get("result", "")).strip().lower() == "yes" else "No"
+        normalized_items.append({
+            **base,
+            "result": result,
+            "evidence": raw.get("evidence", "") if result == "Yes" else raw.get("evidence", "")
+        })
+
+    yes_count = sum(1 for item in normalized_items if item["result"] == "Yes")
+    total_items = len(FEVER_CHECKLIST_ITEMS)
+    total_score = round((yes_count / total_items) * 100, 1)
+    missed_items = []
+    raw_missed = {int(item.get("id")): item for item in result_json.get("missed_items", []) if str(item.get("id", "")).isdigit()}
+
+    for item in normalized_items:
+        if item["result"] == "No":
+            raw = raw_missed.get(item["id"], {})
+            missed_items.append({
+                "id": item["id"],
+                "domain": item["domain"],
+                "criterion": item["criterion"],
+                "why_it_matters": raw.get("why_it_matters", "발열 CPX에서 감염원, 중증도, 진찰 안전성 또는 환자 교육 완성도를 판단하는 데 필요합니다.")
+            })
+
+    result_json.update({
+        "score_total": total_score,
+        "yes_count": yes_count,
+        "total_items": total_items,
+        "scoring_mode": "fever_checklist_yes_no_100_no_weight",
+        "items": normalized_items,
+        "missed_items": missed_items,
+        "total_score": total_score,
+        "score_history_taking": domain_score(normalized_items, "병력"),
+        "score_communication": domain_score(normalized_items, "PPI"),
+        "score_education": domain_score(normalized_items, "환자 교육"),
+        "score_physical_exam": domain_score(normalized_items, "신체 진찰"),
+        "physical_exam_logs": pe_log
+    })
+    return result_json
+
+def domain_score(items: list, domain_keyword: str) -> float:
+    domain_items = [item for item in items if domain_keyword in item["domain"]]
+    if not domain_items:
+        return 0.0
+    yes_count = sum(1 for item in domain_items if item["result"] == "Yes")
+    return round((yes_count / len(domain_items)) * 100, 1)
+
+def build_empty_checklist_result(error_message: str, pe_log: dict = None) -> dict:
+    items = [{**item, "result": "No", "evidence": ""} for item in FEVER_CHECKLIST_ITEMS]
+    return {
+        "score_total": 0.0,
+        "yes_count": 0,
+        "total_items": len(FEVER_CHECKLIST_ITEMS),
+        "scoring_mode": "fever_checklist_yes_no_100_no_weight",
+        "items": items,
+        "missed_items": [
+            {
+                "id": item["id"],
+                "domain": item["domain"],
+                "criterion": item["criterion"],
+                "why_it_matters": "채점 중 오류가 발생해 수행 근거를 확인하지 못했습니다."
+            }
+            for item in FEVER_CHECKLIST_ITEMS
+        ],
+        "score_history_taking": 0.0,
+        "score_communication": 0.0,
+        "score_education": 0.0,
+        "score_physical_exam": 0.0,
+        "total_score": 0.0,
+        "physical_exam_logs": pe_log,
+        "strengths": ["채점 중 오류가 발생했습니다."],
+        "weaknesses": [error_message],
+        "clinical_reasoning_flow": [],
+        "explainable_feedback": []
+    }
 
 def calculate_pe_score(pe_log: dict):
     # 8개 신체진찰 채점 축

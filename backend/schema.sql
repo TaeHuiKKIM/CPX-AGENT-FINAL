@@ -8,7 +8,7 @@ CREATE TYPE user_role AS ENUM ('STUDENT', 'PROFESSOR', 'ADMIN');
 CREATE TYPE subscription_plan AS ENUM ('BASIC', 'PREMIUM', 'ENTERPRISE');
 CREATE TYPE subscription_status AS ENUM ('ACTIVE', 'EXPIRED', 'CANCELED');
 CREATE TYPE scenario_difficulty AS ENUM ('EASY', 'MEDIUM', 'HARD');
-CREATE TYPE session_mode AS ENUM ('LEARNING', 'ACTIVE', 'EXAM');
+CREATE TYPE session_mode AS ENUM ('LEARNING', 'EXAM');
 CREATE TYPE session_status AS ENUM ('COMPLETED', 'INCOMPLETE', 'ERROR');
 CREATE TYPE speaker_type AS ENUM ('USER', 'AI');
 

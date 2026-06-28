@@ -14,6 +14,7 @@ import ScenarioBuilder from './pages/ScenarioBuilder';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import { supabase } from './api/supabase';
+import { CheckCircle2 } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
@@ -184,21 +185,21 @@ export default function App() {
           backgroundColor: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(4px)'
         }}>
           <div style={{
-            backgroundColor: '#fff', padding: '48px 40px', borderRadius: '24px',
+            backgroundColor: '#fff', padding: '48px 40px', borderRadius: '8px',
             textAlign: 'center', maxWidth: '420px', width: '90%',
             boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
             animation: 'resultPopIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275)'
           }}>
             <div style={{
               width: '80px', height: '80px', background: 'linear-gradient(135deg, #0bbfaf, #0891b2)',
-              borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 20px', fontSize: '38px'
-            }}>🎉</div>
+              borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 20px', color: '#fff'
+            }}><CheckCircle2 size={40} /></div>
             <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>채점 완료!</h2>
             <p style={{ color: '#64748b', marginBottom: '28px', fontSize: '15px' }}>AI 교수님의 종합 평가가 완료되었습니다</p>
             <div style={{
               background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)',
-              border: '2px solid #0bbfaf', borderRadius: '16px',
+              border: '2px solid #0bbfaf', borderRadius: '8px',
               padding: '24px', marginBottom: '28px'
             }}>
               <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 600 }}>총 점수</div>
@@ -211,7 +212,7 @@ export default function App() {
               onClick={() => setResultPopup(null)}
               style={{
                 width: '100%', padding: '16px', background: 'linear-gradient(135deg, #0bbfaf, #0891b2)',
-                color: '#fff', border: 'none', borderRadius: '12px',
+                color: '#fff', border: 'none', borderRadius: '8px',
                 fontSize: '16px', fontWeight: 700, cursor: 'pointer',
                 transition: 'transform 0.15s ease'
               }}

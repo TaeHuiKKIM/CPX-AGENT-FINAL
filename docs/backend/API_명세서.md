@@ -61,7 +61,7 @@
 ```json
 {
   "scenario_id": "uuid",
-  "mode": "PRACTICE"
+  "mode": "LEARNING"
 }
 ```
 
@@ -71,7 +71,7 @@
   "session_id": "uuid",
   "scenario_id": "uuid",
   "rubric_id": "uuid",
-  "mode": "PRACTICE",
+  "mode": "LEARNING",
   "status": "IN_PROGRESS",
   "scoring_mode": "fever_checklist_yes_no_100_no_weight",
   "total_items": 40

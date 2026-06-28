@@ -1,8 +1,9 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
+import { feverChecklistItems } from '../../data/feverChecklist';
 
 export default function ScenarioDetailModal({ scenario, onClose, onStart }) {
-  const [mode, setMode] = useState('PRACTICE');
+  const [mode, setMode] = useState('LEARNING');
   const maxVal = Math.max(...scenario.distribution);
 
   return (
@@ -31,12 +32,15 @@ export default function ScenarioDetailModal({ scenario, onClose, onStart }) {
         </div>
 
         <ul id="scen-modal-categories" className="scen-modal-categories">
-          {scenario.rubrics.map((rub) => (
-            <li key={rub.id}>
-              <strong>{rub.category}</strong>: {rub.item}
-            </li>
+          {scenario.goals.map((goal) => (
+            <li key={goal}>{goal}</li>
           ))}
         </ul>
+        <div className="checklist-summary-box">
+          <strong>공통 채점 기준</strong>
+          <span>발열 CPX 40개 항목 Yes/No · 항목당 2.5점 · 부분점수 없음</span>
+          <small>{feverChecklistItems.slice(0, 3).map((item) => item.criterion).join(' / ')} ...</small>
+        </div>
 
         <div className="modal-stats-row">
           <div>
@@ -62,15 +66,15 @@ export default function ScenarioDetailModal({ scenario, onClose, onStart }) {
 
         <div className="modal-action-row" style={{ flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <label htmlFor="practice-mode-select" style={{ fontSize: '14px', fontWeight: 'bold' }}>실습 모드 선택</label>
+            <label htmlFor="practice-mode-select" style={{ fontSize: '14px', fontWeight: 'bold' }}>진행 모드 선택</label>
             <select 
               id="practice-mode-select" 
               value={mode} 
               onChange={(e) => setMode(e.target.value)}
               style={{ padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
             >
-              <option value="PRACTICE">실습 모드 (모의고사 + AI튜터 피드백)</option>
-              <option value="ACTIVE">능동 모드 (환자 먼저 발화)</option>
+              <option value="LEARNING">학습 모드 (AI 튜터 피드백)</option>
+              <option value="EXAM">시험 모드 (힌트 없이 진행)</option>
             </select>
           </div>
           <div style={{ display: 'flex', gap: '10px', width: '100%' }}>

@@ -57,9 +57,9 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
     3. JSON 형태로만 응답하세요.
     """
     
-    # 2. Add tutor guide instruction if PRACTICE mode
-    if mode == "PRACTICE":
-        system_instruction += "\n4. 현재 PRACTICE 모드입니다. 의사(학생)의 이전 질문을 분석하여, 놓친 핵심 질문이나 개선점(Tutor Guide)을 'tutor_guide' 필드에 1문장으로 적어주세요. 잘 하고 있다면 칭찬해주세요."
+    # 2. Add tutor guide instruction if LEARNING mode
+    if mode == "LEARNING":
+        system_instruction += "\n4. 현재 LEARNING(학습) 모드입니다. 의사(학생)의 이전 질문을 분석하여, 놓친 핵심 질문이나 개선점(Tutor Guide)을 'tutor_guide' 필드에 1문장으로 적어주세요. 잘 하고 있다면 칭찬해주세요."
     
     # 3. Format Conversation History
     contents = []
@@ -76,7 +76,7 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
         "type": "object",
         "properties": {
             "text": {"type": "string", "description": "환자의 대답"},
-            "tutor_guide": {"type": "string", "description": "학생을 위한 튜터 가이드 (실습 모드일 때만 포함, 능동 모드일 땐 생략 가능)"}
+            "tutor_guide": {"type": "string", "description": "학생을 위한 튜터 가이드 (학습 모드일 때만 포함, 시험 모드일 땐 생략 가능)"}
         },
         "required": ["text"]
     }
@@ -101,7 +101,7 @@ async def generate_ai_reply(scenario_info: dict, conversation_history: list, mod
         
         return {
             "text": result.get("text", "아... 잘 모르겠습니다."),
-            "tutor_guide": result.get("tutor_guide", None) if mode == "PRACTICE" else None
+            "tutor_guide": result.get("tutor_guide", None) if mode == "LEARNING" else None
         }
     except Exception as e:
         logger.error(f"Gemini API Error: {e}")

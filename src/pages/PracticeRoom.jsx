@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Mic, RotateCcw, Send, Square } from 'lucide-react';
+import { Mic, RotateCcw, Send, Square, Stethoscope } from 'lucide-react';
 import { formatTime } from '../utils/time';
 import { speakWithTTS } from '../utils/speech';
 import { api } from '../api/client';
@@ -111,12 +111,12 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
     const ws = new WebSocket(`${FASTAPI_WS_URL}/sessions/${newSession.session_id}/stream?mode=${practiceMode}`);
     ws.onopen = () => {
       console.log("WebSocket connected with mode:", practiceMode);
-      if (practiceMode === 'ACTIVE') {
+      if (practiceMode === 'LEARNING') {
         const initialMessage = scenario.cc || scenario.patient_info?.initial_complaint || '선생님, 어디가 아파서 왔습니다.';
         appendMessage('patient', initialMessage);
         speakWithTTS(initialMessage);
       } else {
-        // PRACTICE 모드에서는 의사가 먼저 질문하기를 기다림
+        // EXAM 모드에서는 의사가 먼저 질문하기를 기다림
         setEmotionDesc('환자가 의사 선생님의 첫 질문을 기다리고 있습니다.');
       }
     };
@@ -169,7 +169,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           body: JSON.stringify({
             scenario_id: scenario.id,
             transcripts: messagesRef.current,
-            rubric_data: { rubrics: scenario.rubrics },
+            rubric_data: { scenario_goals: scenario.goals, case_rubrics: scenario.rubrics },
             pe_log: peLog // PE 채점 로그 백엔드 전송
           })
         });
@@ -189,7 +189,9 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
           transcript: messagesRef.current.length > 0 ? messagesRef.current : [{ speaker: 'patient', text: '대화 기록이 없습니다.' }],
           // HistoryPage에서 강점, 약점, 피드백을 보여주기 위해 결과 병합
           ...evalResult,
-          checkedRubrics: evalResult.checkedRubrics || []
+          checkedRubrics: evalResult.checkedRubrics || [],
+          checklistItems: evalResult.items || [],
+          missedItems: evalResult.missed_items || []
         };
         
         // onFinish 먼저 → resultPopup state 세팅 → 그다음 resetRoom
@@ -339,7 +341,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
               cursor: !session ? 'not-allowed' : 'pointer', opacity: !session ? 0.5 : 1
             }}
           >
-            🩺 신체진찰
+            <Stethoscope size={16} /> 신체진찰
           </button>
           <button type="button" id="btn-session-stop" disabled={!session} onClick={stopSession} style={{ whiteSpace: 'nowrap' }}>
             <Square size={14} /> 종료
@@ -363,7 +365,7 @@ export default function PracticeRoom({ scenario, practiceMode = 'EXAM', onFinish
                 <Mic />
               </div>
               <h3>AI 표준환자 연습 세션</h3>
-              <p>'연습 시작' 버튼을 누르면 환자가 말을 시작합니다.</p>
+              <p>학습 모드는 환자가 먼저 말하고, 시험 모드는 첫 질문을 기다립니다.</p>
               <button type="button" className="btn-primary" id="btn-start-placeholder" onClick={startSession}>
                 연습 지금 시작하기
               </button>
