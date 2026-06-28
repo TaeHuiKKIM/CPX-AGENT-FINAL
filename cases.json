@@ -1,0 +1,106 @@
+[
+  {
+    "title": "급성 백혈병",
+    "department": "혈액종양내과",
+    "difficulty": "HARD",
+    "patient_info": {
+      "name": "김민준",
+      "age": 28,
+      "sex": "M",
+      "chief_complaint": "2주 전부터 열이 나고, 몸에 멍이 잘 들어요.",
+      "persona_prompt": {"positives": ["미열/고열", "극심한 피로", "잇몸 출혈"], "negatives": ["기침", "배뇨통", "복통"]},
+      "rubric_snapshot": {"history": ["발열 양상", "출혈 경향 확인"], "physical": ["흉골 압통 확인", "간비장비대 확인"]}
+    }
+  },
+  {
+    "title": "약물열",
+    "department": "내과",
+    "difficulty": "MEDIUM",
+    "patient_info": {
+      "name": "이진우",
+      "age": 45,
+      "sex": "M",
+      "chief_complaint": "며칠 전부터 갑자기 39도까지 열이 나요.",
+      "persona_prompt": {"positives": ["39도 고열", "몸통 발진"], "negatives": ["기침", "가래", "콧물"]},
+      "rubric_snapshot": {"history": ["약물 복용력", "발열 시작 시점 확인"], "physical": ["상대적 서맥 확인"]}
+    }
+  },
+  {
+    "title": "전신홍반루푸스",
+    "department": "류마티스내과",
+    "difficulty": "HARD",
+    "patient_info": {
+      "name": "박지윤",
+      "age": 24,
+      "sex": "F",
+      "chief_complaint": "미열이 계속 나고, 양쪽 손목이 아파요.",
+      "persona_prompt": {"positives": ["미열", "관절통", "나비 모양 발진", "구강 궤양"], "negatives": ["흉통", "호흡곤란"]},
+      "rubric_snapshot": {"history": ["광과민성 확인", "단백뇨 여부 확인"], "physical": ["나비 모양 발진 확인"]}
+    }
+  },
+  {
+    "title": "상기도 감염",
+    "department": "가정의학과",
+    "difficulty": "EASY",
+    "patient_info": {
+      "name": "최우진",
+      "age": 32,
+      "sex": "M",
+      "chief_complaint": "어제부터 열이 나고 목이 아파요.",
+      "persona_prompt": {"positives": ["인후통", "맑은 콧물", "잔기침"], "negatives": ["흉통", "심한 오한"]},
+      "rubric_snapshot": {"history": ["인후통 양상", "접촉력 확인"], "physical": ["편도 삼출물 확인"]}
+    }
+  },
+  {
+    "title": "급성 신우신염",
+    "department": "소화기내과",
+    "difficulty": "MEDIUM",
+    "patient_info": {
+      "name": "정수아",
+      "age": 29,
+      "sex": "F",
+      "chief_complaint": "열이 나고 오른쪽 허리가 아파요.",
+      "persona_prompt": {"positives": ["고열", "옆구리 통증", "배뇨통", "빈뇨"], "negatives": ["질 분비물", "기침"]},
+      "rubric_snapshot": {"history": ["LUTS 증상 확인"], "physical": ["CVA 압통 확인"]}
+    }
+  },
+  {
+    "title": "감염성 심내막염",
+    "department": "심장내과",
+    "difficulty": "HARD",
+    "patient_info": {
+      "name": "이철호",
+      "age": 55,
+      "sex": "M",
+      "chief_complaint": "한 달 전부터 미열이 나고 피곤해요.",
+      "persona_prompt": {"positives": ["미열", "식은땀", "체중 감소", "손톱 밑 피멍"], "negatives": ["기침", "복통"]},
+      "rubric_snapshot": {"history": ["치과 시술 여부", "B symptom 확인"], "physical": ["심잡음 확인"]}
+    }
+  },
+  {
+    "title": "연조직염",
+    "department": "피부과",
+    "difficulty": "MEDIUM",
+    "patient_info": {
+      "name": "박성진",
+      "age": 48,
+      "sex": "M",
+      "chief_complaint": "정강이가 빨갛게 부어오르고 열이 나요.",
+      "persona_prompt": {"positives": ["발적", "압통", "부종", "오한"], "negatives": ["없음"]},
+      "rubric_snapshot": {"history": ["외상력 확인"], "physical": ["발적 범위 마킹 확인"]}
+    }
+  },
+  {
+    "title": "말라리아",
+    "department": "감염내과",
+    "difficulty": "HARD",
+    "patient_info": {
+      "name": "김태훈",
+      "age": 22,
+      "sex": "M",
+      "chief_complaint": "열이 펄펄 끓다가 떨어지기를 반복해요.",
+      "persona_prompt": {"positives": ["48시간 주기 고열", "오한", "두통"], "negatives": ["복통", "설사"]},
+      "rubric_snapshot": {"history": ["주기성 발열 확인", "복무 지역 확인"], "physical": ["비장 비대 확인"]}
+    }
+  }
+]
