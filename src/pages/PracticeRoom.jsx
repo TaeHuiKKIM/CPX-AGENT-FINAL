@@ -59,31 +59,27 @@ export default function PracticeRoom({ scenario, onFinish }) {
   }, []);
 
   const startSession = async () => {
-    // 1. Create a DB Session Record in Supabase
-    let { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      // 로그인 없이 테스트하기 위한 자동 임시 계정 생성
-      const tempEmail = `guest_${Date.now()}@medirole.kr`;
-      const { data: signUpData } = await supabase.auth.signUp({ email: tempEmail, password: 'guestpassword123' });
-      user = signUpData?.user;
-      
-      if (!user) {
-        alert("임시 계정 생성에 실패했습니다. 관리자에게 문의하세요.");
-        return;
+    // 1. Create a DB Session Record in Supabase (or fallback to Local Test Session)
+    let newSession = null;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase.from('sessions').insert({
+          user_id: user.id,
+          scenario_id: scenario.id,
+          mode: 'EXAM',
+          status: 'INCOMPLETE'
+        }).select().single();
+        if (!error) newSession = data;
       }
+    } catch (err) {
+      console.warn("DB Session insert failed, falling back to local session:", err);
     }
 
-    const { data: newSession, error } = await supabase.from('sessions').insert({
-      user_id: user.id,
-      scenario_id: scenario.id,
-      mode: 'EXAM',
-      status: 'INCOMPLETE'
-    }).select().single();
-
-    if (error) {
-      console.error(error);
-      alert("세션 생성에 실패했습니다.");
-      return;
+    if (!newSession) {
+      // 로컬 테스트용 가짜 세션 (DB 저장 안 됨)
+      console.log("Using local test session without login.");
+      newSession = { session_id: `test-session-${Date.now()}` };
     }
 
     setSession(newSession);
@@ -138,7 +134,15 @@ export default function PracticeRoom({ scenario, onFinish }) {
       wsRef.current.close();
     }
 
-    // Update Session status
+    if (session.session_id.startsWith('test-session')) {
+      // 로컬 가짜 세션은 DB 저장 및 채점을 생략
+      alert("로그인 없이 진행한 테스트 세션이 종료되었습니다. (DB 저장 및 채점 생략)");
+      resetRoom();
+      onFinish({}, 0);
+      return;
+    }
+
+    // Update Session status (실제 로그인 유저만)
     await supabase.from('sessions').update({ status: 'COMPLETED', end_time: new Date().toISOString() }).eq('session_id', session.session_id);
 
     // Trigger Evaluation in FastAPI
