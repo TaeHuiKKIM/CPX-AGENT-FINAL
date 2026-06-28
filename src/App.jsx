@@ -223,7 +223,7 @@ export default function App() {
       <Sidebar activeTab={activeTab} onNavigate={navigateTo} onLogout={handleLogout} />
 
       <main className="main-content">
-        <Topbar notifications={notifications} setNotifications={setNotifications} />
+        <Topbar activeTab={activeTab} user={user} notifications={notifications} setNotifications={setNotifications} />
 
         <section className={`content-view ${activeTab === 'dashboard' ? 'active' : ''}`}>
           <Dashboard
@@ -276,7 +276,7 @@ export default function App() {
         </section>
 
         <section className={`content-view ${activeTab === 'settings' ? 'active' : ''}`}>
-          <SettingsPage setHistory={setHistory} activeTab={activeTab} />
+          <SettingsPage setHistory={setHistory} activeTab={activeTab} user={user} setUser={setUser} />
         </section>
       </main>
 

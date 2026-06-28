@@ -27,8 +27,8 @@ button { cursor: pointer; border: 0; background: none; }
 .sidebar-item.active, .sidebar-item:hover { background: var(--primary); color: white; box-shadow: 0 10px 22px rgba(18, 102, 255, .22); }
 .main-content { flex: 1; padding: 24px 32px; overflow: auto; background: #f7f9ff; }
 .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-.topbar h2 { margin: 0 0 4px; font-size: 32px; line-height: 1.15; letter-spacing: 0; color: #2c3448; }
-.topbar p { margin: 0; color: var(--muted); }
+.topbar h2 { margin: 0 0 4px; font-size: 24px; line-height: 1.2; letter-spacing: 0; color: #2c3448; }
+.topbar p { margin: 0; color: var(--muted); font-size: 14px; }
 .content-view { display: none; }
 .content-view.active { display: block; }
 

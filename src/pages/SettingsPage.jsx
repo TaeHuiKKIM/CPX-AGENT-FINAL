@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Chart from 'chart.js/auto';
+import { supabase } from '../api/supabase';
 
-export default function SettingsPage({ setHistory, activeTab }) {
-  const [name, setName] = useState('김하나');
-  const [school, setSchool] = useState('의과대학 본과 3학년');
+export default function SettingsPage({ setHistory, activeTab, user, setUser }) {
+  const [name, setName] = useState(() => user?.user_metadata?.name || '김하나');
+  const [school, setSchool] = useState(() => user?.user_metadata?.school || '의과대학 본과 3학년');
+  const [savingProfile, setSavingProfile] = useState(false);
   const [micStatus, setMicStatus] = useState('상태: 정지됨');
   const [volume, setVolume] = useState(0);
   const streamRef = useRef(null);
@@ -78,6 +80,30 @@ export default function SettingsPage({ setHistory, activeTab }) {
 
   useEffect(() => stopMicTest, []);
 
+  useEffect(() => {
+    setName(user?.user_metadata?.name || '김하나');
+    setSchool(user?.user_metadata?.school || '의과대학 본과 3학년');
+  }, [user]);
+
+  const saveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        data: {
+          name: name.trim() || '김하나',
+          school: school.trim()
+        }
+      });
+      if (error) throw error;
+      if (data?.user) setUser?.(data.user);
+      alert('회원 정보 및 목표 진료 일정이 저장되었습니다.');
+    } catch (error) {
+      alert(`프로필 저장에 실패했습니다: ${error.message}`);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   return (
     <div className="settings-page">
       <section className="settings-card profile-card">
@@ -90,8 +116,8 @@ export default function SettingsPage({ setHistory, activeTab }) {
           <input id="profile-input-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="이름 (예: 홍길동)" />
           <input id="profile-input-school" value={school} onChange={(e) => setSchool(e.target.value)} placeholder="소속 (예: 의과대학 본과 3학년)" />
         </div>
-        <button type="button" className="btn-primary" id="btn-save-profile" style={{ padding: '12px', borderRadius: '8px' }} onClick={() => alert('회원 정보 및 목표 진료 일정이 저장되었습니다.')}>
-          프로필 저장
+        <button type="button" className="btn-primary" id="btn-save-profile" style={{ padding: '12px', borderRadius: '8px' }} onClick={saveProfile} disabled={savingProfile}>
+          {savingProfile ? '저장 중...' : '프로필 저장'}
         </button>
         <div className="profile-chart-box" style={{ marginTop: '24px' }}>
           <canvas id="profile-radar-chart" ref={chartRef} />

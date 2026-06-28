@@ -4,6 +4,8 @@ import '../../styles/PhysicalExamModal.css';
 
 /* ============================ DATA ============================ */
 const POSTURE_CHANGE_SECONDS = 2;
+const DEFAULT_EXAM_SECONDS = 5;
+const COOPERATIVE_EXAM_SECONDS = 12;
 
 const POSTURES = [
   { id: 'supine', ko: '앙와위', en: 'Supine', btn: '눕히기' },
@@ -292,7 +294,7 @@ export default function PhysicalExamModal({ isOpen, onClose, scenario, onComplet
     if (it.anchor) setAbdAuscDone(true);
     if (contact) setContactCount(prev => prev + 1);
     
-    const cost = it.coop ? 10 : 5;
+    const cost = it.coop ? COOPERATIVE_EXAM_SECONDS : DEFAULT_EXAM_SECONDS;
     deductTime(cost);
     
     const find = resolveFinding(it, quad);

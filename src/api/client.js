@@ -4,15 +4,6 @@ const FASTAPI_BASE_URL = import.meta.env.VITE_FASTAPI_BASE_URL || '/api/v1';
 
 // Legacy token methods (Supabase manages its own session, but we keep these for compatibility if needed)
 function getToken() {
-  const sessionString = window.localStorage.getItem('sb-your-project-url-auth-token');
-  if (sessionString) {
-    try {
-      const session = JSON.parse(sessionString);
-      return session?.access_token;
-    } catch {
-      return null;
-    }
-  }
   return null;
 }
 
