@@ -1,5 +1,6 @@
 import logging
 import json
+import asyncio
 from core.exceptions import CPXException
 from services.supabase_db import get_supabase_client
 from services.llm_service import generate_content_with_model_fallback
@@ -339,25 +340,28 @@ async def evaluate_session(session_id: str, pe_log: dict = None):
     logger.info(f"Starting DB evaluation for session: {session_id}")
     supabase = get_supabase_client()
     
-    # 1. Fetch Transcripts
-    transcripts_resp = supabase.table("transcripts") \
-        .select("*") \
-        .eq("session_id", session_id) \
-        .order("timestamp", desc=False) \
-        .execute()
+    # 1. Fetch Transcripts and Session in parallel
+    transcripts_task = asyncio.to_thread(
+        supabase.table("transcripts").select("*").eq("session_id", session_id).order("timestamp", desc=False).execute
+    )
+    session_task = asyncio.to_thread(
+        supabase.table("sessions").select("scenario_id").eq("session_id", session_id).execute
+    )
+    
+    transcripts_resp, session_resp = await asyncio.gather(transcripts_task, session_task)
         
     if not transcripts_resp.data:
         raise CPXException("No transcripts found for this session.", status_code=404)
         
-    # 2. Fetch Session & Scenario context
-    session_resp = supabase.table("sessions").select("scenario_id").eq("session_id", session_id).execute()
     if not session_resp.data:
         raise CPXException("Session not found.", status_code=404)
         
     scenario_id = session_resp.data[0]["scenario_id"]
     
     # 3. Fetch Rubric
-    rubric_resp = supabase.table("rubrics").select("*").eq("scenario_id", scenario_id).execute()
+    rubric_resp = await asyncio.to_thread(
+        supabase.table("rubrics").select("*").eq("scenario_id", scenario_id).execute
+    )
     rubric_data = rubric_resp.data[0] if rubric_resp.data else None
     
     # 4. Call LLM for Evaluation
@@ -379,11 +383,18 @@ async def evaluate_session(session_id: str, pe_log: dict = None):
         "explainable_feedback": eval_result.get("explainable_feedback"),
     }
     
-    existing = supabase.table("feedback_results").select("result_id").eq("session_id", session_id).execute()
+    existing = await asyncio.to_thread(
+        supabase.table("feedback_results").select("result_id").eq("session_id", session_id).execute
+    )
+    
     if existing.data:
-        res = supabase.table("feedback_results").update(feedback_data).eq("session_id", session_id).execute()
+        res = await asyncio.to_thread(
+            supabase.table("feedback_results").update(feedback_data).eq("session_id", session_id).execute
+        )
     else:
-        res = supabase.table("feedback_results").insert(feedback_data).execute()
+        res = await asyncio.to_thread(
+            supabase.table("feedback_results").insert(feedback_data).execute
+        )
         
     logger.info(f"Evaluation completed for DB session: {session_id}")
     return res.data[0] if res.data else None
