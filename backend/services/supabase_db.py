@@ -1,3 +1,4 @@
+import asyncio
 from core.config import settings
 
 try:
@@ -6,11 +7,16 @@ except ModuleNotFoundError:
     create_client = None
     Client = object
 
+_supabase_client = None
+
 def get_supabase_client() -> Client:
-    """Returns a Supabase client instance."""
+    """Returns a singleton Supabase client instance."""
+    global _supabase_client
     if create_client is None:
         raise RuntimeError("Supabase Python package is not installed.")
-    return create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+    if _supabase_client is None:
+        _supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+    return _supabase_client
 
 async def log_transcript(session_id: str, speaker: str, content: str, audio_url: str = None):
     """
@@ -29,7 +35,7 @@ async def log_transcript(session_id: str, speaker: str, content: str, audio_url:
     }
     
     try:
-        response = supabase.table("transcripts").insert(data).execute()
+        response = await asyncio.to_thread(supabase.table("transcripts").insert(data).execute)
         return response
     except Exception as e:
         print(f"Error logging transcript: {e}")
@@ -40,7 +46,7 @@ async def get_scenario_prompt(scenario_id: str) -> dict:
     if create_client is None:
         return None
     supabase = get_supabase_client()
-    response = supabase.table("scenarios").select("*").eq("scenario_id", scenario_id).execute()
+    response = await asyncio.to_thread(supabase.table("scenarios").select("*").eq("scenario_id", scenario_id).execute)
     if response.data:
         return response.data[0]
     return None
